@@ -77,7 +77,7 @@ graph TD
 
 When users ask follow-up questions after an initial agent-organizer workflow, apply intelligent escalation based on complexity assessment to avoid unnecessary overhead while maintaining quality.
 
-### Complexity Assessment for Follow-Ups
+### Complexity Assessment for Follow-ups
 
 **Simple Follow-ups** (Handle directly without sub-agents):
 
@@ -309,6 +309,14 @@ See `.env` for required variables:
 ### Next Steps
 See `/docs/REBUILD_PLAN.md` for current implementation status and roadmap.
 
+## Workflow Protocol
+
+### Workflow Execution Guidelines
+- **Handle every task as create -> review -> fix -> validate with the appropriate specialist agents**
+- Focus on systematic, structured approach to task completion
+- Ensure thorough review and validation at each stage
+- Leverage specialized agents for precise, expert-level execution
+
 ---
 
 ## Important Reminders
@@ -329,5 +337,22 @@ Only handle directly:
 - Single-line fixes
 - Configuration value changes
 - Status checks
+
+### Code Generation Best Practices
+- **Always ensure we are using the proper agents to implement code**
+- Focus on specific, immediate requirements
+- Prioritize readability and maintainability
+- Use established design patterns
+- Follow SOLID principles
+
+### TypeScript Guidelines
+- Ensure all TypeScript guidelines are followed
+- Use strict typing
+- Leverage type inference where possible
+- Avoid `any` type
+- Use interfaces and type aliases effectively
+- Implement proper generics
+- Utilize conditional types and mapped types
+- Ensure type safety in all code
 
 Remember: **When in doubt, delegate to agent-organizer!**

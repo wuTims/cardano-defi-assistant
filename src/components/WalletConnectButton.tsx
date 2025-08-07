@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Wallet } from 'lucide-react';
@@ -48,7 +49,7 @@ export const WalletConnectButton: React.FC = () => {
                 onClick={() => handleWalletConnect(wallet.name)}
                 disabled={isConnecting}
               >
-                <img src={wallet.icon} alt={wallet.name} className="w-6 h-6" />
+                <Image src={wallet.icon} alt={wallet.name} width={24} height={24} className="w-6 h-6" />
                 <span>{wallet.name}</span>
               </Button>
             ))}
