@@ -1,58 +1,159 @@
-import React, { useState } from 'react';
-import Image from 'next/image';
+"use client";
+
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Wallet } from 'lucide-react';
+import { Wallet, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import type { WalletType } from '@/types/auth';
 
-const WALLET_OPTIONS = [
-  { name: 'Nami', icon: '/icons/nami.svg' },
-  { name: 'Eternl', icon: '/icons/eternl.svg' },
-  { name: 'Flint', icon: '/icons/flint.svg' },
-  { name: 'Yoroi', icon: '/icons/yoroi.svg' },
+const WALLET_OPTIONS: Array<{ name: string; type: WalletType; color: string }> = [
+  { name: 'Nami', type: 'nami', color: 'text-blue-400' },
+  { name: 'Eternl', type: 'eternl', color: 'text-purple-400' },
+  { name: 'Flint', type: 'flint', color: 'text-orange-400' },
+  { name: 'Yoroi', type: 'yoroi', color: 'text-green-400' },
+  { name: 'Gero', type: 'gerowallet', color: 'text-pink-400' },
 ];
 
 export const WalletConnectButton: React.FC = () => {
-  const [isConnecting, setIsConnecting] = useState(false);
+  const { 
+    isAuthenticated, 
+    connectionState, 
+    walletType, 
+    walletAddress, 
+    error,
+    connectWallet, 
+    disconnect, 
+    clearError 
+  } = useAuth();
 
-  const handleWalletConnect = async (walletName: string) => {
-    setIsConnecting(true);
-    try {
-      // Implement wallet connection logic
-      console.log(`Connecting to ${walletName}`);
-      // TODO: Implement actual wallet connection using Mesh SDK
-    } catch (error) {
-      console.error('Wallet connection failed', error);
-    } finally {
-      setIsConnecting(false);
-    }
+  const handleWalletConnect = async (selectedWalletType: WalletType) => {
+    clearError();
+    await connectWallet(selectedWalletType);
   };
+
+  const handleDisconnect = () => {
+    disconnect();
+  };
+
+  if (isAuthenticated && walletAddress) {
+    return (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button 
+            variant="outline" 
+            className="bg-transparent border-2 border-green-500/50 text-green-400 hover:bg-green-500/10 transition-all duration-300"
+          >
+            <CheckCircle className="mr-2 w-4 h-4" />
+            {walletType?.charAt(0).toUpperCase()}{walletType?.slice(1)} Connected
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80 bg-gray-900 border-gray-800 text-white">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium text-green-400">Wallet Connected</h4>
+              <CheckCircle className="w-5 h-5 text-green-400" />
+            </div>
+            
+            <div className="space-y-2">
+              <div className="text-sm text-gray-400">Wallet Type</div>
+              <div className="font-medium capitalize">{walletType}</div>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="text-sm text-gray-400">Address</div>
+              <div className="font-mono text-xs break-all bg-gray-800 p-2 rounded">
+                {walletAddress.slice(0, 20)}...{walletAddress.slice(-10)}
+              </div>
+            </div>
+            
+            <Button 
+              variant="outline" 
+              className="w-full bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20"
+              onClick={handleDisconnect}
+            >
+              Disconnect Wallet
+            </Button>
+          </div>
+        </PopoverContent>
+      </Popover>
+    );
+  }
 
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button 
           variant="outline" 
-          className="bg-transparent border-2 border-white/30 text-white hover:bg-white/10 transition-all duration-300"
+          className={`bg-transparent border-2 transition-all duration-300 ${
+            connectionState === 'error' 
+              ? 'border-red-500/50 text-red-400 hover:bg-red-500/10' 
+              : 'border-white/30 text-white hover:bg-white/10'
+          }`}
+          disabled={connectionState === 'connecting'}
         >
-          <Wallet className="mr-2" /> Connect Wallet
+          {connectionState === 'connecting' ? (
+            <>
+              <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+              Connecting...
+            </>
+          ) : connectionState === 'error' ? (
+            <>
+              <AlertCircle className="mr-2 w-4 h-4" />
+              Connection Failed
+            </>
+          ) : (
+            <>
+              <Wallet className="mr-2 w-4 h-4" />
+              Connect Wallet
+            </>
+          )}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 bg-gray-900 border-gray-800 text-white">
-        <div className="grid gap-4">
-          <h4 className="font-medium leading-none mb-4">Choose Your Wallet</h4>
-          <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium leading-none">Choose Your Wallet</h4>
+            {error && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearError}
+                className="text-gray-400 hover:text-white h-auto p-1"
+              >
+                ×
+              </Button>
+            )}
+          </div>
+          
+          {error && (
+            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                <p className="text-sm text-red-300">{error}</p>
+              </div>
+            </div>
+          )}
+          
+          <div className="grid grid-cols-2 gap-3">
             {WALLET_OPTIONS.map((wallet) => (
               <Button 
-                key={wallet.name}
+                key={wallet.type}
                 variant="outline" 
-                className="flex items-center justify-center space-x-2 bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
-                onClick={() => handleWalletConnect(wallet.name)}
-                disabled={isConnecting}
+                className="flex items-center justify-center space-x-2 bg-gray-800 border-gray-700 text-white hover:bg-gray-700 h-12 transition-colors"
+                onClick={() => handleWalletConnect(wallet.type)}
+                disabled={connectionState === 'connecting'}
               >
-                <Image src={wallet.icon} alt={wallet.name} width={24} height={24} className="w-6 h-6" />
+                <div className={`w-6 h-6 rounded-full bg-current/20 flex items-center justify-center ${wallet.color}`}>
+                  <span className="text-xs font-bold">{wallet.name[0]}</span>
+                </div>
                 <span>{wallet.name}</span>
               </Button>
             ))}
+          </div>
+          
+          <div className="text-xs text-gray-400 text-center">
+            Make sure your wallet extension is installed and unlocked
           </div>
         </div>
       </PopoverContent>

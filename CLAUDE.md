@@ -253,10 +253,215 @@ wallet-sync-service/
 6. Store JWT in auth context
 7. Sync wallet data to database
 
+### **CRITICAL: Dependency Management Process Failure Prevention**
+
+**Lessons Learned from August 7, 2025 False Alarm:**
+
+**Issue**: IDE diagnostics showed "missing dependencies" for `@radix-ui/react-accordion` and `framer-motion`, leading to false assumption of missing packages.
+
+**Reality**: All dependencies were already installed and functional. The issue was IDE cache/diagnostics lag, not actual missing packages.
+
+**Prevention Process:**
+1. **Always verify with actual commands before assuming dependency issues:**
+   ```bash
+   npx tsc --noEmit    # Check TypeScript compilation
+   npm run build       # Test complete build process
+   ls node_modules/@radix-ui/ # Verify physical package presence
+   ```
+
+2. **Don't trust IDE diagnostics alone** - they can show false positives due to:
+   - Cache lag after fresh installs
+   - TypeScript server restart needed
+   - Temporary file system sync issues
+
+3. **Evidence-based diagnosis required:**
+   - If TypeScript compiles cleanly, dependencies are resolved
+   - If build succeeds, all imports work correctly
+   - Physical package presence in node_modules confirms installation
+
+4. **Process failure documentation mandatory** when making incorrect assumptions
+
 ### Critical Guidelines
 
 #### NO UNUSED CODE GENERATION
 **NEVER** generate methods, functions, or components that are not immediately used. Every piece of code MUST serve a specific, immediate purpose in the current task.
+
+### NEVER LEAVE TODOS OR STUBS IN CODE
+**NEVER** leave todos or stubs in code. Every piece of code MUST serve a specific, immediate purpose in the current task. If you are not sure what to do, ask for help. If you need to stub or TODO, ensure it is clear and you create a task to comeback to it at the end.
+
+### TypeScript Code Guidelines
+
+### Variable Declarations
+
+### Inline Usage for Single-Use Variables
+
+Quick description: Do not declare constants that are only used once. Use their value directly inline instead.
+
+✅ DO:
+
+```typescript
+const deleteResponse = await genqlMutation({
+  prisma,
+  source: {
+    deleteTag: [{ id: createResponse.createTag.id }, { id: true }],
+  },
+  userId: seededData.users[0].id,
+  workspaceId: seededData.workspaces[1].id,
+});
+```
+
+❌ DON'T:
+
+```typescript
+const tagId = createResponse.createTag.id;
+
+const deleteResponse = await genqlMutation({
+  prisma,
+  source: {
+    deleteTag: [{ id: tagId }, { id: true }],
+  },
+  userId: seededData.users[0].id,
+  workspaceId: seededData.workspaces[1].id,
+});
+```
+
+### Direct Reference to Static Data
+
+Quick description: Always reference static data (like seededData) directly without creating intermediate variables.
+
+✅ DO:
+
+```typescript
+const deleteResponse = await genqlMutation({
+  prisma,
+  source: {
+    deleteTag: [{ id: seededData.tags[0].id }, { id: true }],
+  },
+  userId: seededData.users[0].id,
+  workspaceId: seededData.workspaces[0].id,
+});
+
+const tag = await prisma.tag.findUnique({
+  where: { id: seededData.tags[0].id },
+});
+```
+
+❌ DON'T:
+
+```typescript
+const tagToDelete = seededData.tags[0]; // Unnecessary intermediate variable
+
+const deleteResponse = await genqlMutation({
+  prisma,
+  source: {
+    deleteTag: [{ id: tagToDelete.id }, { id: true }],
+  },
+  userId: seededData.users[0].id,
+  workspaceId: seededData.workspaces[0].id,
+});
+
+const tag = await prisma.tag.findUnique({
+  where: { id: tagToDelete.id },
+});
+```
+
+### Exceptions
+
+Variables may be declared separately if:
+
+- They are used multiple times
+- The expression is complex and would harm readability if used inline
+- The variable name provides important semantic context that would be lost with inline usage
+- Debugging purposes require a specific variable to be inspectable
+
+## Types vs Interfaces
+
+Quick description: Always use `type` for declaring types, avoid interfaces.
+
+✅ DO:
+
+```tsx
+export type UpsertTagNamespaceFormModalProps = {
+  tagNamespace: UpsertTagNamespaceFormProps['tagNamespace'];
+  trigger?: ReactElement;
+};
+```
+
+❌ DON'T:
+
+```tsx
+interface UpsertTagNamespaceFormModalProps {
+  tagNamespace: UpsertTagNamespaceFormProps['tagNamespace'];
+  trigger?: ReactElement;
+}
+```
+
+## Function Definitions
+
+Quick description: Use arrow functions with `export const` syntax instead of standard function declarations.
+
+✅ DO:
+
+```typescript
+export const getCollectionAncestors = async ({ collection, ctx }: GetCollectionAncestorsArgs) => {
+  // Implementation
+};
+```
+
+❌ DON'T:
+
+```typescript
+export async function getCollectionAncestors({ collection, ctx }: GetCollectionAncestorsArgs): Promise<string[]> {
+  // Implementation
+}
+```
+
+## Type Parameters
+
+Quick description: Use descriptive names with `Args` suffix for function parameters and prefer `Pick<>` over custom types when referencing model properties.
+
+✅ DO:
+
+```typescript
+export type GetCollectionAncestorsArgs = {
+  collection: Pick<Collection, 'id' | 'parentCollectionId'>;
+  ctx: Context;
+};
+```
+
+❌ DON'T:
+
+```typescript
+export type CollectionInfo = {
+  id: string;
+  parentCollectionId: string | null;
+};
+
+export type GetCollectionAncestorsParams = {
+  collection: CollectionInfo;
+  ctx: Context;
+};
+```
+
+## Return Types
+
+Quick description: Prefer implicit return types when possible, let TypeScript infer the types.
+
+✅ DO:
+
+```typescript
+export const getCollectionAncestors = async ({ collection, ctx }: GetCollectionAncestorsArgs) => {
+  // TypeScript will infer the return type
+};
+```
+
+❌ DON'T:
+
+```typescript
+export const getCollectionAncestors = async ({ collection, ctx }: GetCollectionAncestorsArgs): Promise<string[]> => {
+  // Explicitly specified return type
+};
+```
 
 #### Clean State Management
 - Use React Context for global auth state
@@ -344,6 +549,32 @@ Only handle directly:
 - Prioritize readability and maintainability
 - Use established design patterns
 - Follow SOLID principles
+
+### CRITICAL LESSON LEARNED: Code Review Failure Analysis
+
+#### **What Went Wrong (August 7, 2025)**
+**VIOLATION**: Claimed "code review complete" and "dashboard working" without testing actual user experience.
+
+**ROOT CAUSE**: 
+- Made assumptions based on code compilation success
+- Did not test running application in browser
+- Failed to ask for specific error details from user
+- Validated syntax but ignored user experience
+
+#### **CORRECT REVIEW PROCESS**:
+1. **ASK FOR SPECIFICS**: "What specific error/issue are you seeing?"
+2. **TEST THE RUNNING APP**: Always verify in actual browser, not just compilation
+3. **CHECK USER WORKFLOWS**: Test clicks, interactions, page navigation  
+4. **VERIFY CONSOLE**: Check browser console for runtime errors
+5. **NEVER CLAIM SUCCESS** without end-to-end user experience validation
+
+#### **Review Checklist - MANDATORY**:
+- [ ] Code compiles without TypeScript errors
+- [ ] Application starts and loads in browser  
+- [ ] Target page/component renders without errors
+- [ ] Interactive elements respond correctly
+- [ ] Browser console shows no errors
+- [ ] User workflow functions end-to-end
 
 ### TypeScript Guidelines
 - Ensure all TypeScript guidelines are followed

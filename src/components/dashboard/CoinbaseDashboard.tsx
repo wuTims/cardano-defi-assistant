@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/context/AuthContext';
+import { WalletOverview } from './WalletOverview';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -319,9 +321,40 @@ function CategoryAccordion({ categories }: { categories: CategoryData[] }) {
 }
 
 export function CoinbaseDashboard() {
-  // Mock portfolio data - to be replaced with real wallet data
-  const totalPortfolioValue = '$142,398.19';
-  const portfolioChange = 4.2;
+  const { isAuthenticated, walletData } = useAuth();
+  
+  // Calculate portfolio value from actual wallet data
+  const calculatePortfolioValue = (): { value: string; change: number } => {
+    if (!walletData) return { value: '$0.00', change: 0 };
+    
+    const adaBalance = parseFloat(walletData.balance.lovelace) / 1_000_000;
+    const adaPrice = 0.45; // Mock price - in production, fetch from price API
+    const totalValue = adaBalance * adaPrice;
+    
+    // Mock change percentage - in production, calculate based on historical data
+    const change = Math.random() * 10 - 5; // Random change between -5% and +5%
+    
+    return {
+      value: `$${totalValue.toFixed(2)}`,
+      change: parseFloat(change.toFixed(1))
+    };
+  };
+
+  const { value: totalPortfolioValue, change: portfolioChange } = calculatePortfolioValue();
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <div className="text-center space-y-6">
+          <Wallet className="w-16 h-16 text-muted-foreground mx-auto" />
+          <div>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Welcome to Your Dashboard</h1>
+            <p className="text-muted-foreground">Connect your Cardano wallet to get started</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -379,29 +412,8 @@ export function CoinbaseDashboard() {
           </Card>
         </motion.div>
 
-        {/* Asset Balance Cards */}
-        <div>
-          <motion.h2
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-2xl font-bold text-foreground mb-6"
-          >
-            Your Assets
-          </motion.h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {defaultAssets.map((asset, index) => (
-              <motion.div
-                key={asset.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + index * 0.1 }}
-              >
-                <AssetBalanceCard asset={asset} />
-              </motion.div>
-            ))}
-          </div>
-        </div>
+        {/* Wallet Overview - Replaces Asset Cards */}
+        <WalletOverview />
 
         {/* Recent Transactions */}
         <div>

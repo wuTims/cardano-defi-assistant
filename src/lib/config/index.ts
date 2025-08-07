@@ -6,6 +6,8 @@
  * with sensible defaults for development.
  */
 
+import { ConfigurationError } from '../errors';
+
 export interface AppConfig {
   app: {
     name: string;
@@ -103,7 +105,13 @@ class ConfigManager {
       .map(field => field.path);
 
     if (missingFields.length > 0 && this.config.app.environment === 'production') {
-      throw new Error(`Missing required configuration: ${missingFields.join(', ')}`);
+      throw new ConfigurationError(
+        `Missing required configuration: ${missingFields.join(', ')}`,
+        { 
+          missingFields,
+          environment: this.config.app.environment 
+        }
+      );
     }
   }
 

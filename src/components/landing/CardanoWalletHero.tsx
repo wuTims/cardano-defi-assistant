@@ -5,6 +5,7 @@ import { motion, useMotionTemplate, useMotionValue, animate } from "framer-motio
 import { Wallet, Shield, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
+import { WalletConnectButton } from "@/components/WalletConnectButton";
 
 // Utility function for cn
 function cnUtil(...classes: (string | undefined | null | false)[]): string {
@@ -223,14 +224,20 @@ const CardanoWalletHero: React.FC<CardanoWalletHeroProps> = ({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <Button
-              size="lg"
-              onClick={onPrimaryClick}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg shadow-blue-500/25 px-8 py-4 text-lg font-semibold"
-            >
-              <Wallet className="w-5 h-5 mr-2" />
-              {primaryButtonText}
-            </Button>
+            {onPrimaryClick ? (
+              <Button
+                size="lg"
+                onClick={onPrimaryClick}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg shadow-blue-500/25 px-8 py-4 text-lg font-semibold"
+              >
+                <Wallet className="w-5 h-5 mr-2" />
+                {primaryButtonText}
+              </Button>
+            ) : (
+              <div className="text-lg">
+                <WalletConnectButton />
+              </div>
+            )}
           </motion.div>
           
           <motion.div
@@ -290,7 +297,6 @@ const CardanoWalletHeroDemo = () => {
       description="Experience the future of Cardano wallet synchronization with our advanced, secure, and lightning-fast service. Connect, sync, and manage your ADA with confidence."
       primaryButtonText="Connect Wallet"
       secondaryButtonText="Learn More"
-      onPrimaryClick={() => alert("Connecting wallet...")}
       onSecondaryClick={() => alert("Learning more...")}
     />
   );
