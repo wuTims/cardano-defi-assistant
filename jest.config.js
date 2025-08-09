@@ -18,7 +18,6 @@ const customJestConfig = {
     '!src/app/**/*', // Exclude Next.js app pages
     '!src/components/**/*', // Exclude React components (covered by E2E tests)
     '!src/context/**/*', // Exclude React contexts (covered by E2E tests)
-    '!src/utils/Logger.ts', // Exclude old logger (replaced by lib/logger)
     '!src/lib/utils.ts', // Exclude Next.js utils
     '!src/**/__tests__/**', // Exclude test files
   ],
@@ -36,7 +35,7 @@ const customJestConfig = {
       statements: 90
     }
   },
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   testMatch: [

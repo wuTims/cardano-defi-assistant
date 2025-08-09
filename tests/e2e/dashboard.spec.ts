@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { mockWalletData, mockJWTToken, mockWalletAddresses, testConfig, mockBlockfrostResponses } from '../fixtures/mockWalletData';
+import { mockJWTToken, mockWalletAddresses, testConfig, mockWalletData } from '../fixtures/playwrightMocks';
 
 test.describe('Dashboard Flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -97,7 +97,7 @@ test.describe('Dashboard Flow', () => {
     await page.goto('/dashboard');
 
     // Check for native token display (if assets exist)
-    const assetsSection = page.locator('[data-testid="assets-section"], text=/assets|tokens/i');
+    const assetsSection = page.locator('[data-testid="assets-section"]').or(page.locator('text=/assets|tokens/i'));
     await expect(assetsSection).toBeVisible();
 
     // Should show asset count or "No assets" message
@@ -137,7 +137,7 @@ test.describe('Dashboard Flow', () => {
     await page.goto('/dashboard');
 
     // Check for navigation/header
-    const navigation = page.locator('[data-testid="navigation"], nav, header');
+    const navigation = page.locator('[data-testid="navigation"]').first().or(page.locator('nav').first()).or(page.locator('header').first());
     await expect(navigation).toBeVisible();
 
     // Should have logout/disconnect option
@@ -218,7 +218,7 @@ test.describe('Dashboard Flow', () => {
     await expect(dashboardContent).toBeVisible();
 
     // Navigation should be mobile-friendly
-    const navigation = page.locator('[data-testid="navigation"], nav, header');
+    const navigation = page.locator('[data-testid="navigation"]').first().or(page.locator('nav').first()).or(page.locator('header').first());
     await expect(navigation).toBeVisible();
 
     // Wallet information should be displayed properly

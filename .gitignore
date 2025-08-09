@@ -76,4 +76,10 @@ ehthumbs_vista.db
 # Misc
 .DS_Store
 
-docs
+docs/
+test-results/
+coverage/
+playwright-report/
+supabase/.env
+.vercel/
+.next/

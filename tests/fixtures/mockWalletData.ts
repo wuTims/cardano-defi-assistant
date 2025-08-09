@@ -16,34 +16,40 @@ export const mockWalletTypes = ['nami', 'eternl', 'lace', 'vespr', 'nufi', 'typh
 
 export const mockUTXOs = [
   {
-    tx_hash: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2',
-    output_index: 0,
+    txHash: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2',
+    outputIndex: 0,
     amount: [
       { unit: 'lovelace', quantity: '2500000' },
       { unit: 'asset1234567890abcdef', quantity: '100' }
     ],
     block: 'block_hash_here',
-    data_hash: null
+    dataHash: undefined
   },
   {
-    tx_hash: 'b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3',
-    output_index: 1,
+    txHash: 'b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3',
+    outputIndex: 1,
     amount: [
       { unit: 'lovelace', quantity: '1500000' }
     ],
     block: 'block_hash_here_2',
-    data_hash: null
+    dataHash: undefined
   }
 ];
 
 export const mockAssets = [
   {
     unit: 'asset1234567890abcdef',
-    quantity: '100'
+    quantity: '100',
+    policyId: '1234567890abcdef',
+    assetName: 'TestAsset1',
+    fingerprint: 'asset1234567890abcdef'
   },
   {
     unit: 'asset9876543210fedcba',
-    quantity: '50'
+    quantity: '50',
+    policyId: '9876543210fedcba',
+    assetName: 'TestAsset2',
+    fingerprint: 'asset9876543210fedcba'
   }
 ];
 
@@ -54,7 +60,7 @@ export const mockWalletData: WalletData = {
     assets: mockAssets
   },
   utxos: mockUTXOs,
-  lastSynced: new Date('2024-08-07T10:00:00Z'),
+  lastSyncedAt: new Date('2024-08-07T10:00:00Z'),
   syncedBlockHeight: 12345
 };
 
@@ -66,9 +72,9 @@ export const mockAuthChallenge: AuthChallenge = {
 };
 
 export const mockSignatureArgs: WalletSignatureArgs = {
-  address: mockWalletAddresses.valid,
-  signature: 'a4ed2f42b4f98c1f84f5b3c8d9e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7',
-  key: 'e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7',
+  hexAddress: mockWalletAddresses.valid,
+  coseSignature: 'a4ed2f42b4f98c1f84f5b3c8d9e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7',
+  publicKey: 'e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7',
   nonce: 'challenge-nonce-123'
 };
 
@@ -126,22 +132,22 @@ export const mockCIP30Wallet = {
   icon: 'data:image/svg+xml;base64,test-icon',
   version: '1.0.0',
   
-  isEnabled: jest.fn().mockResolvedValue(true),
+  isEnabled: () => Promise.resolve(true),
   
-  enable: jest.fn().mockResolvedValue({
-    getNetworkId: jest.fn().mockResolvedValue(0), // 0 for testnet, 1 for mainnet
-    getUtxos: jest.fn().mockResolvedValue([]),
-    getBalance: jest.fn().mockResolvedValue('0x3d0900'), // 4000000 in hex
-    getUsedAddresses: jest.fn().mockResolvedValue([mockWalletAddresses.valid]),
-    getUnusedAddresses: jest.fn().mockResolvedValue([]),
-    getChangeAddress: jest.fn().mockResolvedValue(mockWalletAddresses.valid),
-    getRewardAddresses: jest.fn().mockResolvedValue(['stake1test123']),
-    signTx: jest.fn().mockResolvedValue('signed_tx_cbor_hex'),
-    signData: jest.fn().mockResolvedValue({
-      signature: mockSignatureArgs.signature,
-      key: mockSignatureArgs.key
+  enable: () => Promise.resolve({
+    getNetworkId: () => Promise.resolve(0), // 0 for testnet, 1 for mainnet
+    getUtxos: () => Promise.resolve([]),
+    getBalance: () => Promise.resolve('0x3d0900'), // 4000000 in hex
+    getUsedAddresses: () => Promise.resolve([mockWalletAddresses.valid]),
+    getUnusedAddresses: () => Promise.resolve([]),
+    getChangeAddress: () => Promise.resolve(mockWalletAddresses.valid),
+    getRewardAddresses: () => Promise.resolve(['stake1test123']),
+    signTx: () => Promise.resolve('signed_tx_cbor_hex'),
+    signData: () => Promise.resolve({
+      signature: mockSignatureArgs.coseSignature,
+      key: mockSignatureArgs.publicKey
     }),
-    submitTx: jest.fn().mockResolvedValue('tx_hash_result')
+    submitTx: () => Promise.resolve('tx_hash_result')
   })
 };
 

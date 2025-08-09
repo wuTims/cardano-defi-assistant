@@ -4,15 +4,15 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Wallet, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
-import type { WalletType } from '@/types/auth';
+import { useWalletAuth } from '@/hooks/useWalletAuth';
+import { WalletType } from '@/types/auth';
 
 const WALLET_OPTIONS: Array<{ name: string; type: WalletType; color: string }> = [
-  { name: 'Nami', type: 'nami', color: 'text-blue-400' },
-  { name: 'Eternl', type: 'eternl', color: 'text-purple-400' },
-  { name: 'Flint', type: 'flint', color: 'text-orange-400' },
-  { name: 'Yoroi', type: 'yoroi', color: 'text-green-400' },
-  { name: 'Gero', type: 'gerowallet', color: 'text-pink-400' },
+  { name: 'Nami', type: WalletType.NAMI, color: 'text-blue-400' },
+  { name: 'Eternl', type: WalletType.ETERNL, color: 'text-purple-400' },
+  { name: 'Flint', type: WalletType.FLINT, color: 'text-orange-400' },
+  { name: 'Yoroi', type: WalletType.YOROI, color: 'text-green-400' },
+  { name: 'Gero', type: WalletType.GEROWALLET, color: 'text-pink-400' },
 ];
 
 export const WalletConnectButton: React.FC = () => {
@@ -25,7 +25,7 @@ export const WalletConnectButton: React.FC = () => {
     connectWallet, 
     disconnect, 
     clearError 
-  } = useAuth();
+  } = useWalletAuth();
 
   const handleWalletConnect = async (selectedWalletType: WalletType) => {
     clearError();
@@ -42,33 +42,35 @@ export const WalletConnectButton: React.FC = () => {
         <PopoverTrigger asChild>
           <Button 
             variant="outline" 
+            data-testid="wallet-connected-button"
             className="bg-transparent border-2 border-green-500/50 text-green-400 hover:bg-green-500/10 transition-all duration-300"
           >
             <CheckCircle className="mr-2 w-4 h-4" />
             {walletType?.charAt(0).toUpperCase()}{walletType?.slice(1)} Connected
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-80 bg-gray-900 border-gray-800 text-white">
+        <PopoverContent data-testid="wallet-connected-popover" className="w-80 bg-gray-900 border-gray-800 text-white">
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div data-testid="wallet-connected-header" className="flex items-center justify-between">
               <h4 className="font-medium text-green-400">Wallet Connected</h4>
               <CheckCircle className="w-5 h-5 text-green-400" />
             </div>
             
-            <div className="space-y-2">
+            <div data-testid="wallet-type-section" className="space-y-2">
               <div className="text-sm text-gray-400">Wallet Type</div>
-              <div className="font-medium capitalize">{walletType}</div>
+              <div data-testid="wallet-type-display" className="font-medium capitalize">{walletType}</div>
             </div>
             
-            <div className="space-y-2">
+            <div data-testid="wallet-address-section" className="space-y-2">
               <div className="text-sm text-gray-400">Address</div>
-              <div className="font-mono text-xs break-all bg-gray-800 p-2 rounded">
+              <div data-testid="wallet-address-display" className="font-mono text-xs break-all bg-gray-800 p-2 rounded">
                 {walletAddress.slice(0, 20)}...{walletAddress.slice(-10)}
               </div>
             </div>
             
             <Button 
               variant="outline" 
+              data-testid="wallet-disconnect-button"
               className="w-full bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20"
               onClick={handleDisconnect}
             >
@@ -85,6 +87,7 @@ export const WalletConnectButton: React.FC = () => {
       <PopoverTrigger asChild>
         <Button 
           variant="outline" 
+          data-testid={`wallet-connect-trigger-${connectionState}`}
           className={`bg-transparent border-2 transition-all duration-300 ${
             connectionState === 'error' 
               ? 'border-red-500/50 text-red-400 hover:bg-red-500/10' 
@@ -110,14 +113,15 @@ export const WalletConnectButton: React.FC = () => {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 bg-gray-900 border-gray-800 text-white">
+      <PopoverContent data-testid="wallet-selection-popover" className="w-80 bg-gray-900 border-gray-800 text-white">
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div data-testid="wallet-selection-header" className="flex items-center justify-between">
             <h4 className="font-medium leading-none">Choose Your Wallet</h4>
             {error && (
               <Button
                 variant="ghost"
                 size="sm"
+                data-testid="wallet-error-dismiss-button"
                 onClick={clearError}
                 className="text-gray-400 hover:text-white h-auto p-1"
               >
@@ -127,19 +131,20 @@ export const WalletConnectButton: React.FC = () => {
           </div>
           
           {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+            <div data-testid="wallet-connection-error" className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
               <div className="flex items-center space-x-2">
                 <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
-                <p className="text-sm text-red-300">{error}</p>
+                <p data-testid="wallet-error-message" className="text-sm text-red-300">{error}</p>
               </div>
             </div>
           )}
           
-          <div className="grid grid-cols-2 gap-3">
+          <div data-testid="wallet-options-grid" className="grid grid-cols-2 gap-3">
             {WALLET_OPTIONS.map((wallet) => (
               <Button 
                 key={wallet.type}
                 variant="outline" 
+                data-testid={`wallet-option-${wallet.type}`}
                 className="flex items-center justify-center space-x-2 bg-gray-800 border-gray-700 text-white hover:bg-gray-700 h-12 transition-colors"
                 onClick={() => handleWalletConnect(wallet.type)}
                 disabled={connectionState === 'connecting'}
@@ -152,7 +157,7 @@ export const WalletConnectButton: React.FC = () => {
             ))}
           </div>
           
-          <div className="text-xs text-gray-400 text-center">
+          <div data-testid="wallet-instructions" className="text-xs text-gray-400 text-center">
             Make sure your wallet extension is installed and unlocked
           </div>
         </div>

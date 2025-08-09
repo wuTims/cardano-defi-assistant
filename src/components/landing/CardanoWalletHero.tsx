@@ -3,9 +3,10 @@
 import React, { useEffect, useRef } from "react";
 import { motion, useMotionTemplate, useMotionValue, animate } from "framer-motion";
 import { Wallet, Shield, Zap } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/ui-utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import { WalletConnectButton } from "@/components/WalletConnectButton";
+import { logger } from "@/lib/logger";
 
 // Utility function for cn
 function cnUtil(...classes: (string | undefined | null | false)[]): string {
@@ -136,8 +137,8 @@ const CardanoWalletHero: React.FC<CardanoWalletHeroProps> = ({
   description = "Experience the future of Cardano wallet synchronization with our advanced, secure, and lightning-fast service. Connect, sync, and manage your ADA with confidence.",
   primaryButtonText = "Connect Wallet",
   secondaryButtonText = "Learn More",
-  onPrimaryClick = () => console.log("Connect wallet clicked"),
-  onSecondaryClick = () => console.log("Learn more clicked"),
+  onPrimaryClick = () => logger.info("Primary button clicked - Connect wallet"),
+  onSecondaryClick = () => logger.info("Secondary button clicked - Learn more"),
 }) => {
   const color = useMotionValue("#3b82f6");
 
@@ -154,7 +155,7 @@ const CardanoWalletHero: React.FC<CardanoWalletHeroProps> = ({
   const borderGradient = useMotionTemplate`linear-gradient(135deg, ${color}40, transparent)`;
 
   return (
-    <section className="relative min-h-screen bg-background text-foreground overflow-hidden">
+    <section data-testid="cardano-wallet-hero" className="relative min-h-screen bg-background text-foreground overflow-hidden">
       {/* Animated background gradient */}
       <motion.div
         style={{ background: backgroundGradient }}
@@ -179,6 +180,7 @@ const CardanoWalletHero: React.FC<CardanoWalletHeroProps> = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
+          data-testid="hero-security-badge"
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 backdrop-blur-sm mb-8"
         >
           <Shield className="w-4 h-4 text-blue-400" />
@@ -190,9 +192,10 @@ const CardanoWalletHero: React.FC<CardanoWalletHeroProps> = ({
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
+          data-testid="hero-title-section"
           className="mb-6"
         >
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight">
+          <h1 data-testid="hero-main-title" className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight">
             <span className="bg-gradient-to-b from-foreground via-foreground/90 to-muted-foreground bg-clip-text text-transparent">
               {title}
             </span>
@@ -208,6 +211,7 @@ const CardanoWalletHero: React.FC<CardanoWalletHeroProps> = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
+          data-testid="hero-description"
           className="max-w-2xl text-lg md:text-xl text-muted-foreground mb-12 leading-relaxed"
         >
           {description}
@@ -218,23 +222,26 @@ const CardanoWalletHero: React.FC<CardanoWalletHeroProps> = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.6 }}
+          data-testid="hero-cta-buttons"
           className="flex flex-col sm:flex-row gap-4 mb-16"
         >
           <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            data-testid="hero-primary-action"
           >
             {onPrimaryClick ? (
               <Button
                 size="lg"
                 onClick={onPrimaryClick}
+                data-testid="hero-primary-button"
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg shadow-blue-500/25 px-8 py-4 text-lg font-semibold"
               >
                 <Wallet className="w-5 h-5 mr-2" />
                 {primaryButtonText}
               </Button>
             ) : (
-              <div className="text-lg">
+              <div data-testid="hero-wallet-connect-wrapper" className="text-lg">
                 <WalletConnectButton />
               </div>
             )}
@@ -243,11 +250,13 @@ const CardanoWalletHero: React.FC<CardanoWalletHeroProps> = ({
           <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            data-testid="hero-secondary-action"
           >
             <Button
               variant="outline"
               size="lg"
               onClick={onSecondaryClick}
+              data-testid="hero-secondary-button"
               className="border-muted-foreground/20 hover:border-muted-foreground/40 px-8 py-4 text-lg"
             >
               {secondaryButtonText}
@@ -260,6 +269,7 @@ const CardanoWalletHero: React.FC<CardanoWalletHeroProps> = ({
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.8 }}
+          data-testid="hero-features-grid"
           className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl"
         >
           {[
@@ -272,11 +282,12 @@ const CardanoWalletHero: React.FC<CardanoWalletHeroProps> = ({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 1 + index * 0.1 }}
+              data-testid={`hero-feature-${feature.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
               className="flex flex-col items-center text-center p-6 rounded-xl bg-background/5 backdrop-blur-sm border border-white/5"
             >
               <feature.icon className="w-8 h-8 text-blue-400 mb-4" />
-              <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-              <p className="text-muted-foreground text-sm">{feature.description}</p>
+              <h3 data-testid={`feature-title-${feature.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}`} className="text-lg font-semibold mb-2">{feature.title}</h3>
+              <p data-testid={`feature-description-${feature.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}`} className="text-muted-foreground text-sm">{feature.description}</p>
             </motion.div>
           ))}
         </motion.div>

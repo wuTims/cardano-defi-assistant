@@ -1,11 +1,11 @@
-import CoinbaseDashboardDemo from '@/components/dashboard/CoinbaseDashboard';
+import WalletDashboard from '@/components/dashboard/WalletDashboard';
 import { Navigation } from '@/components/ui/Navigation';
 
 export default function Dashboard() {
   return (
     <>
       <Navigation />
-      <CoinbaseDashboardDemo />
+      <WalletDashboard />
     </>
   );
 }

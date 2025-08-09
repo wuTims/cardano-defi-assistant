@@ -1,43 +1,55 @@
+/**
+ * Clean AuthContext - Authentication State Only
+ * 
+ * Focused on core authentication concerns:
+ * - Token management with proper memoization
+ * - Login/logout flow with API integration
+ * - User identity state
+ * 
+ * Uses modern React patterns:
+ * - useMemo for expensive computations/object creation
+ * - useCallback for stable function references
+ * - useEffect only for actual side effects
+ */
+
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { authService } from '@/services/auth';
-import { walletSyncService } from '@/services/sync';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { logger } from '@/lib/logger';
-import type {
-  AuthChallenge,
-  AuthToken,
-  WalletSignatureArgs,
+import { getCardanoWallet, CardanoWalletApi } from '@/lib/cardano/wallets';
+import {
   WalletType,
-  AuthServiceResponse
+  WalletConnectionState,
 } from '@/types/auth';
-import type { WalletData } from '@/types/wallet';
+import type {
+  NonceRequest,
+  NonceResponse,
+  VerifyRequest,
+  VerifyResponse,
+  SupabaseAuthToken,
+  AuthUser,
+} from '@/types/auth';
 
-/**
- * Wallet connection state
- */
-export type WalletConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error';
+// Re-export types for backward compatibility
+export type { WalletConnectionState, WalletType } from '@/types/auth';
+export type User = AuthUser;
 
-/**
- * Authentication context type
- */
 export type AuthContextType = {
-  // Authentication state
+  // Direct state exposure (no wrapper)
   isAuthenticated: boolean;
-  authToken: AuthToken | null;
-  walletAddress: string | null;
-  walletType: WalletType | null;
+  user: User | null;
+  token: SupabaseAuthToken | null;
   connectionState: WalletConnectionState;
   error: string | null;
-
-  // Wallet data
-  walletData: WalletData | null;
-  isSyncing: boolean;
-
-  // Methods
+  
+  // Computed values
+  isTokenExpired: boolean;
+  tokenExpiresIn: number; // minutes until expiration
+  
+  // Stable action functions
   connectWallet: (walletType: WalletType) => Promise<void>;
   disconnect: () => void;
-  syncWalletData: () => Promise<void>;
+  refreshToken: () => Promise<void>;
   clearError: () => void;
 };
 
@@ -52,37 +64,106 @@ export const useAuth = (): AuthContextType => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Core state - kept minimal
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authToken, setAuthToken] = useState<AuthToken | null>(null);
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [walletType, setWalletType] = useState<WalletType | null>(null);
-  const [connectionState, setConnectionState] = useState<WalletConnectionState>('disconnected');
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<SupabaseAuthToken | null>(null);
+  const [connectionState, setConnectionState] = useState<WalletConnectionState>(WalletConnectionState.DISCONNECTED);
   const [error, setError] = useState<string | null>(null);
-  const [walletData, setWalletData] = useState<WalletData | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
 
-  /**
-   * Load wallet data from database
-   */
-  const loadWalletData = useCallback(async (address: string) => {
-    try {
-      const data = await walletSyncService.getWalletData(address);
-      setWalletData(data);
-    } catch (error) {
-      logger.error('Failed to load wallet data', error);
+  // Computed values for token expiration
+  const isTokenExpired = useMemo(() => {
+    if (!token) return true;
+    return new Date(token.expiresAt) <= new Date();
+  }, [token]);
+
+  const tokenExpiresIn = useMemo(() => {
+    if (!token) return 0;
+    const now = new Date().getTime();
+    const expires = new Date(token.expiresAt).getTime();
+    return Math.max(0, Math.floor((expires - now) / (1000 * 60))); // minutes
+  }, [token]);
+
+  // Stable function to request nonce from API
+  const requestNonce = useCallback(async (walletAddress: string): Promise<NonceResponse> => {
+    const request: NonceRequest = { walletAddress };
+    
+    const response = await fetch('/api/auth/nonce', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to generate challenge');
     }
+
+    return response.json();
   }, []);
 
-  /**
-   * Initialize auth state from localStorage on mount
-   */
+  // Stable function to verify signature with API
+  const verifySignature = useCallback(async (verifyData: VerifyRequest): Promise<VerifyResponse> => {
+    const response = await fetch('/api/auth/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(verifyData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Authentication failed');
+    }
+
+    return response.json();
+  }, []);
+
+  // Stable function to refresh token
+  const refreshTokenAPI = useCallback(async (walletAddress: string): Promise<VerifyResponse> => {
+    const response = await fetch('/api/auth/refresh', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token.token}` })
+      },
+      body: JSON.stringify({ walletAddress }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Token refresh failed');
+    }
+
+    return response.json();
+  }, [token]);
+
+  // Clear error state
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  // Initialize auth from localStorage - runs once
   useEffect(() => {
     const initializeAuth = async () => {
       try {
         const storedToken = localStorage.getItem('wallet-sync-auth-token');
         if (!storedToken) return;
 
-        const tokenData: AuthToken = JSON.parse(storedToken);
+        let tokenData: SupabaseAuthToken;
+        try {
+          tokenData = JSON.parse(storedToken);
+        } catch (error) {
+          logger.error('Invalid token format in localStorage', error);
+          localStorage.removeItem('wallet-sync-auth-token');
+          return;
+        }
+
+        // Validate token structure
+        if (!tokenData.token || !tokenData.walletAddress || !tokenData.userId) {
+          logger.error('Incomplete token data in localStorage');
+          localStorage.removeItem('wallet-sync-auth-token');
+          return;
+        }
         
         // Check if token is expired
         if (new Date(tokenData.expiresAt) <= new Date()) {
@@ -90,20 +171,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
-        // Verify token with auth service
-        const verifyResult = authService.verifyToken(tokenData.token);
-        if (verifyResult.success && verifyResult.data) {
-          setAuthToken(tokenData);
-          setWalletAddress(tokenData.walletAddress);
-          setWalletType(tokenData.walletType);
-          setIsAuthenticated(true);
-          setConnectionState('connected');
+        // Token is valid, restore auth state
+        const restoredUser: User = {
+          id: tokenData.userId,
+          walletAddress: tokenData.walletAddress,
+          walletType: tokenData.walletType
+        };
 
-          // Load wallet data
-          await loadWalletData(tokenData.walletAddress);
-        } else {
-          localStorage.removeItem('wallet-sync-auth-token');
-        }
+        setToken(tokenData);
+        setUser(restoredUser);
+        setIsAuthenticated(true);
+        setConnectionState(WalletConnectionState.CONNECTED);
+
+        logger.info('Authentication restored from storage');
       } catch (error) {
         logger.error('Failed to initialize auth from storage', error);
         localStorage.removeItem('wallet-sync-auth-token');
@@ -111,84 +191,80 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     initializeAuth();
-  }, [loadWalletData]);
+  }, []); // Empty dependencies - runs once only
 
-  /**
-   * Clear error state
-   */
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
 
-  /**
-   * Connect to a Cardano wallet using CIP-30
-   */
-  const connectWallet = useCallback(async (selectedWalletType: WalletType) => {
-    setConnectionState('connecting');
+  // Connect wallet with proper CIP-30 integration
+  const connectWallet = useCallback(async (walletType: WalletType) => {
+    setConnectionState(WalletConnectionState.CONNECTING);
     setError(null);
 
     try {
-      // Check if wallet is available in the browser
-      const walletApi = await getWalletApi(selectedWalletType);
+      // Get wallet API
+      const walletApi = await getWalletApi(walletType);
       if (!walletApi) {
-        throw new Error(`${selectedWalletType} wallet not found`);
+        throw new Error(`${walletType} wallet not found`);
       }
 
-      // Enable the wallet
-      const enabledApi = await walletApi.enable();
-      const addresses = await enabledApi.getUsedAddresses();
+      // Enable wallet and get instance
+      const walletInstance = await walletApi.enable();
+      const hexAddresses = await walletInstance.getUsedAddresses();
       
-      if (!addresses || addresses.length === 0) {
+      if (!hexAddresses || hexAddresses.length === 0) {
         throw new Error('No addresses found in wallet');
       }
 
-      // Use the first address
-      const firstAddress = addresses[0];
+      // Use hex address directly - server will handle conversion to Bech32
+      const hexAddress = hexAddresses[0];
+      logger.info(`Got hex address from wallet: ${hexAddress.slice(0, 20)}...`);
 
-      // Generate authentication challenge
-      const challengeResponse = authService.generateChallenge(firstAddress);
-      if (!challengeResponse.success || !challengeResponse.data) {
-        throw new Error(challengeResponse.error || 'Failed to generate challenge');
-      }
+      // Request challenge from server using hex address
+      const nonceResponse = await requestNonce(hexAddress);
 
-      const challenge = challengeResponse.data;
+      // Request signature from wallet using hex address per CIP-30
+      const messageHex = Buffer.from(nonceResponse.challenge, 'utf8').toString('hex');
+      const signatureResult = await walletInstance.signData(hexAddress, messageHex);
 
-      // Request signature from wallet
-      const signatureResult = await requestWalletSignature(
-        enabledApi,
-        challenge.challenge,
-        firstAddress
-      );
+      // Verify signature and get JWT
+      const verifyRequest: VerifyRequest = {
+        walletAddress: hexAddress, // Send hex address - server will convert to Bech32
+        walletType,
+        nonce: nonceResponse.nonce,
+        signatureData: {
+          coseSignature: signatureResult.signature,
+          publicKey: signatureResult.key
+        }
+      };
 
-      // Verify signature and get JWT token
-      const authResponse = await authService.verifySignatureAndGenerateToken(
-        signatureResult,
-        selectedWalletType
-      );
+      const authResponse = await verifySignature(verifyRequest);
 
-      if (!authResponse.success || !authResponse.data) {
-        throw new Error(authResponse.error || 'Authentication failed');
-      }
+      // Update auth state
+      const newToken: SupabaseAuthToken = {
+        token: authResponse.accessToken,
+        expiresAt: new Date(authResponse.expiresAt),
+        walletAddress: authResponse.user.walletAddress, // Server returns Bech32
+        walletType,
+        userId: authResponse.user.id
+      };
 
-      const token = authResponse.data;
+      const newUser: User = {
+        id: authResponse.user.id,
+        walletAddress: authResponse.user.walletAddress,
+        walletType
+      };
 
-      // Store token in localStorage
-      localStorage.setItem('wallet-sync-auth-token', JSON.stringify(token));
+      // Store token in localStorage for persistence
+      localStorage.setItem('wallet-sync-auth-token', JSON.stringify(newToken));
 
       // Update state
-      setAuthToken(token);
-      setWalletAddress(token.walletAddress);
-      setWalletType(selectedWalletType);
+      setToken(newToken);
+      setUser(newUser);
       setIsAuthenticated(true);
-      setConnectionState('connected');
+      setConnectionState(WalletConnectionState.CONNECTED);
 
-      // Load and sync wallet data
-      await loadWalletData(token.walletAddress);
-      // Note: syncWalletData will be called separately by user interaction to avoid circular dependency
+      logger.info(`Wallet connected successfully: ${walletType} - ${authResponse.user.walletAddress}`);
 
-      logger.info(`Wallet connected successfully: ${selectedWalletType} - ${token.walletAddress}`);
-
-      // Redirect to dashboard after successful connection
+      // Redirect to dashboard
       if (typeof window !== 'undefined') {
         window.location.href = '/dashboard';
       }
@@ -196,66 +272,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to connect wallet';
       setError(errorMessage);
-      setConnectionState('error');
+      setConnectionState(WalletConnectionState.ERROR);
       logger.error('Wallet connection failed', error);
     }
-  }, [loadWalletData]);
+  }, [requestNonce, verifySignature]);
 
-  /**
-   * Disconnect wallet and clear authentication state
-   */
+  // Disconnect and clear all auth state
   const disconnect = useCallback(() => {
     localStorage.removeItem('wallet-sync-auth-token');
-    setAuthToken(null);
-    setWalletAddress(null);
-    setWalletType(null);
+    setToken(null);
+    setUser(null);
     setIsAuthenticated(false);
-    setConnectionState('disconnected');
-    setWalletData(null);
+    setConnectionState(WalletConnectionState.DISCONNECTED);
     setError(null);
     logger.info('Wallet disconnected');
   }, []);
 
-  /**
-   * Sync wallet data from blockchain
-   */
-  const syncWalletData = useCallback(async () => {
-    if (!walletAddress) return;
-
-    setIsSyncing(true);
-    try {
-      const syncResult = await walletSyncService.syncWallet(walletAddress);
-      
-      if (syncResult.success) {
-        // Reload wallet data after sync
-        await loadWalletData(walletAddress);
-        logger.info('Wallet sync completed successfully');
-      } else {
-        throw new Error(syncResult.error || 'Sync failed');
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to sync wallet';
-      setError(errorMessage);
-      logger.error('Wallet sync failed', error);
-    } finally {
-      setIsSyncing(false);
+  // Refresh token before expiration
+  const refreshToken = useCallback(async () => {
+    if (!user?.walletAddress) {
+      throw new Error('No user to refresh token for');
     }
-  }, [walletAddress, loadWalletData]);
 
-  const contextValue: AuthContextType = {
+    try {
+      const refreshResponse = await refreshTokenAPI(user.walletAddress);
+      
+      const newToken: SupabaseAuthToken = {
+        token: refreshResponse.accessToken,
+        expiresAt: new Date(refreshResponse.expiresAt),
+        walletAddress: refreshResponse.user.walletAddress,
+        walletType: refreshResponse.user.walletType as WalletType,
+        userId: refreshResponse.user.id
+      };
+
+      // Update localStorage
+      localStorage.setItem('wallet-sync-auth-token', JSON.stringify(newToken));
+      
+      // Update state
+      setToken(newToken);
+      
+      logger.info('Token refreshed successfully');
+    } catch (error) {
+      logger.error('Token refresh failed', error);
+      // If refresh fails, logout user
+      disconnect();
+      throw error;
+    }
+  }, [user?.walletAddress, refreshTokenAPI, disconnect]);
+
+  // Memoized context value to prevent unnecessary re-renders
+  const contextValue = useMemo<AuthContextType>(() => ({
     isAuthenticated,
-    authToken,
-    walletAddress,
-    walletType,
+    user,
+    token,
     connectionState,
     error,
-    walletData,
-    isSyncing,
+    isTokenExpired,
+    tokenExpiresIn,
     connectWallet,
     disconnect,
-    syncWalletData,
+    refreshToken,
     clearError,
-  };
+  }), [isAuthenticated, user, token, connectionState, error, isTokenExpired, tokenExpiresIn, connectWallet, disconnect, refreshToken, clearError]);
 
   return (
     <AuthContext.Provider value={contextValue}>
@@ -267,65 +345,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 /**
  * Get wallet API instance from browser
  */
-const getWalletApi = async (walletType: WalletType): Promise<any> => {
+async function getWalletApi(walletType: WalletType): Promise<CardanoWalletApi | null> {
   if (typeof window === 'undefined') return null;
 
   const walletApiMap: Record<WalletType, string> = {
-    nami: 'nami',
-    eternl: 'eternl',
-    flint: 'flint',
-    gerowallet: 'gerowallet',
-    yoroi: 'yoroi',
-    ccvault: 'ccvault',
+    [WalletType.NAMI]: 'nami',
+    [WalletType.ETERNL]: 'eternl',
+    [WalletType.FLINT]: 'flint',
+    [WalletType.LACE]: 'lace',
+    [WalletType.GEROWALLET]: 'gerowallet',
+    [WalletType.YOROI]: 'yoroi',
+    [WalletType.CCVAULT]: 'ccvault',
+    [WalletType.VESPR]: 'vespr',
+    [WalletType.NUFI]: 'nufi',
+    [WalletType.TYPHON]: 'typhon',
   };
 
   const walletName = walletApiMap[walletType];
-  const walletApi = (window as any).cardano?.[walletName];
+  const walletApi = getCardanoWallet(walletName);
 
   if (!walletApi) {
     throw new Error(`${walletType} wallet not installed`);
   }
 
   return walletApi;
-};
-
-/**
- * Request signature from wallet using CIP-30
- */
-const requestWalletSignature = async (
-  enabledApi: any,
-  message: string,
-  address: string
-): Promise<WalletSignatureArgs> => {
-  try {
-    // Convert message to hex
-    const messageHex = Buffer.from(message, 'utf8').toString('hex');
-    
-    // Request signature
-    const signature = await enabledApi.signData(address, messageHex);
-    
-    // Get public key
-    const publicKey = signature.key;
-    const signatureHex = signature.signature;
-
-    return {
-      address,
-      signature: signatureHex,
-      key: publicKey,
-      nonce: extractNonceFromMessage(message),
-    };
-  } catch (error) {
-    throw new Error(`Failed to sign message: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-};
-
-/**
- * Extract nonce from challenge message
- */
-const extractNonceFromMessage = (message: string): string => {
-  const nonceMatch = message.match(/nonce: ([a-fA-F0-9]+)/);
-  if (!nonceMatch) {
-    throw new Error('Invalid challenge format');
-  }
-  return nonceMatch[1];
-};
+}

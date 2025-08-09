@@ -1,16 +1,17 @@
 import { test, expect } from '@playwright/test';
-import { mockJWTToken, mockWalletAddresses, testConfig } from '../fixtures/mockWalletData';
+import { mockJWTToken, mockWalletAddresses, testConfig } from '../fixtures/playwrightMocks';
 
 test.describe('Error Scenarios', () => {
   test('should handle network connectivity issues', async ({ page }) => {
-    // Simulate offline mode
-    await page.context().setOffline(true);
-    
+    // Load page first, then simulate offline mode
     await page.goto('/');
-
-    // Try to connect wallet
-    const connectButton = page.locator('button', { hasText: /connect wallet/i });
+    
+    // Try to connect wallet - use specific test-id to avoid ambiguity
+    const connectButton = page.getByTestId('hero-primary-button');
     await connectButton.click();
+    
+    // Now simulate offline mode after initial page load
+    await page.context().setOffline(true);
 
     // Should show network error
     const networkError = page.locator('text=/network|offline|connection/i');
@@ -35,7 +36,7 @@ test.describe('Error Scenarios', () => {
 
     await page.goto('/');
 
-    const connectButton = page.locator('button', { hasText: /connect wallet/i });
+    const connectButton = page.getByTestId('hero-primary-button');
     await connectButton.click();
 
     // Should show server error message
@@ -69,7 +70,7 @@ test.describe('Error Scenarios', () => {
 
     await page.goto('/');
 
-    const connectButton = page.locator('button', { hasText: /connect wallet/i });
+    const connectButton = page.getByTestId('hero-primary-button');
     await connectButton.click();
 
     const namiWallet = page.locator('text=/nami/i').first();
@@ -97,7 +98,7 @@ test.describe('Error Scenarios', () => {
 
     await page.goto('/');
 
-    const connectButton = page.locator('button', { hasText: /connect wallet/i });
+    const connectButton = page.getByTestId('hero-primary-button');
     await connectButton.click();
 
     const namiWallet = page.locator('text=/nami/i').first();
@@ -178,7 +179,7 @@ test.describe('Error Scenarios', () => {
     await page.goto('/');
 
     // Start wallet connection
-    const connectButton = page.locator('button', { hasText: /connect wallet/i });
+    const connectButton = page.getByTestId('hero-primary-button');
     await connectButton.click();
     const namiWallet = page.locator('text=/nami/i').first();
     await namiWallet.click();
@@ -250,7 +251,7 @@ test.describe('Error Scenarios', () => {
     await page.goto('/');
 
     // Complete authentication
-    const connectButton = page.locator('button', { hasText: /connect wallet/i });
+    const connectButton = page.getByTestId('hero-primary-button');
     await connectButton.click();
     const namiWallet = page.locator('text=/nami/i').first();
     await namiWallet.click();
@@ -293,7 +294,7 @@ test.describe('Error Scenarios', () => {
 
     await page.goto('/');
 
-    const connectButton = page.locator('button', { hasText: /connect wallet/i });
+    const connectButton = page.getByTestId('hero-primary-button');
     await connectButton.click();
 
     // Try to connect multiple times quickly
@@ -371,7 +372,7 @@ test.describe('Error Scenarios', () => {
     await page.goto('/');
 
     // Try to connect wallet (this should try to store token)
-    const connectButton = page.locator('button', { hasText: /connect wallet/i });
+    const connectButton = page.getByTestId('hero-primary-button');
     await connectButton.click();
     const namiWallet = page.locator('text=/nami/i').first();
     await namiWallet.click();
@@ -391,7 +392,7 @@ test.describe('Error Scenarios', () => {
 
     // With JS disabled, the connect wallet button should still be visible
     // but clicking it should show a message about requiring JavaScript
-    const connectButton = page.locator('button', { hasText: /connect wallet/i });
+    const connectButton = page.getByTestId('hero-primary-button');
     await expect(connectButton).toBeVisible();
 
     // Note: This test is limited since Playwright requires JavaScript.
