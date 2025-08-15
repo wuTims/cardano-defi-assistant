@@ -83,3 +83,4 @@ playwright-report/
 supabase/.env
 .vercel/
 .next/
+local-testing/

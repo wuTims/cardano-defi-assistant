@@ -1,16 +1,12 @@
-import type { Metadata } from 'next'
+'use client';
+
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/context/AuthContext'
 import { SupabaseProvider } from '@/context/SupabaseProvider'
-import { WalletProvider } from '@/context/WalletProvider'
+import { QueryProvider } from '@/providers/query-provider'
 
 const inter = Inter({ subsets: ['latin'] })
-
-export const metadata: Metadata = {
-  title: 'Wallet Sync Service',
-  description: 'Cardano wallet synchronization and portfolio tracking',
-}
 
 export default function RootLayout({
   children,
@@ -22,9 +18,9 @@ export default function RootLayout({
       <body className={inter.className}>
         <AuthProvider>
           <SupabaseProvider>
-            <WalletProvider>
+            <QueryProvider>
               {children}
-            </WalletProvider>
+            </QueryProvider>
           </SupabaseProvider>
         </AuthProvider>
       </body>

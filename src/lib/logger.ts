@@ -5,7 +5,7 @@
  * file logging only on server side.
  */
 
-type LogLevel = 'INFO' | 'WARN' | 'ERROR';
+type LogLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
 
 export class Logger {
   private static instance: Logger;
@@ -22,6 +22,13 @@ export class Logger {
   private formatMessage(level: LogLevel, message: string): string {
     const timestamp = new Date().toISOString();
     return `[${timestamp}] [${level}] ${message}`;
+  }
+
+  public debug(message: string): void {
+    if (process.env.NODE_ENV === 'development') {
+      const formattedMessage = this.formatMessage('DEBUG', message);
+      console.log(formattedMessage);
+    }
   }
 
   public info(message: string): void {

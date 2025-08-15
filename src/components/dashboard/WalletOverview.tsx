@@ -5,21 +5,19 @@ import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Wallet, AlertCircle, TrendingUp, TrendingDown } from 'lucide-react';
-import { useWalletAuth } from '@/hooks/useWalletAuth';
+import { useAuth } from '@/context/AuthContext';
+import { useWallet } from '@/hooks/queries/use-wallet-query';
+import { useManualSync } from '@/hooks/mutations/use-sync-mutation';
 import { priceService } from '@/services/price-service';
 import { logger } from '@/lib/logger';
 
 export const WalletOverview: React.FC = () => {
-  const {
-    isAuthenticated,
-    walletAddress,
-    walletType,
-    walletData,
-    isSyncing,
-    error,
-    syncWalletData,
-    clearError
-  } = useWalletAuth();
+  const { isAuthenticated, user } = useAuth();
+  const { walletData, error } = useWallet();
+  const { sync: syncWallet, isLoading: isSyncing } = useManualSync();
+  
+  const walletAddress = user?.walletAddress;
+  const walletType = user?.walletType;
 
   const [usdValue, setUsdValue] = useState<string>('$0.00');
   const [priceChange, setPriceChange] = useState<{ change: number; isPositive: boolean } | null>(null);
@@ -88,14 +86,14 @@ export const WalletOverview: React.FC = () => {
                 {walletType?.charAt(0).toUpperCase()}{walletType?.slice(1)} Wallet
               </h2>
               <p data-testid="wallet-address-display" className="text-muted-foreground font-mono text-sm">
-                {walletAddress.slice(0, 12)}...{walletAddress.slice(-8)}
+                {walletAddress ? `${walletAddress.slice(0, 12)}...${walletAddress.slice(-8)}` : 'No address'}
               </p>
             </div>
           </div>
           
           <Button
             variant="outline"
-            onClick={syncWalletData}
+            onClick={() => syncWallet()}
             disabled={isSyncing}
             data-testid="wallet-sync-button"
             className="flex items-center space-x-2"
@@ -112,20 +110,11 @@ export const WalletOverview: React.FC = () => {
             data-testid="wallet-error-alert"
             className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg"
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <AlertCircle className="w-4 h-4 text-red-400" />
-                <p data-testid="wallet-error-message" className="text-sm text-red-300">{error}</p>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearError}
-                data-testid="wallet-error-dismiss"
-                className="text-red-400 hover:text-red-300 h-auto p-1"
-              >
-                ×
-              </Button>
+            <div className="flex items-center space-x-2">
+              <AlertCircle className="w-4 h-4 text-red-400" />
+              <p data-testid="wallet-error-message" className="text-sm text-red-300">
+                {error.message || 'Failed to load wallet data'}
+              </p>
             </div>
           </motion.div>
         )}

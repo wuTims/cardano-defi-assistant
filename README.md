@@ -60,8 +60,8 @@ This service implements a novel authentication approach combining:
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/yourusername/wallet-sync-service.git
-cd wallet-sync-service
+git clone https://github.com/yourusername/cardano-defi-assistant.git
+cd cardano-defi-assistant
 ```
 
 2. **Install dependencies**

@@ -32,16 +32,21 @@ export type WalletData = {
   address: string;
   balance: WalletBalance;
   utxos: CardanoUTXO[];
-  lastSyncedAt: Date;
+  lastSyncedAt: Date | null;
   syncedBlockHeight: number;
 };
 
 export type SyncResult = {
   success: boolean;
-  walletAddress: string;
   syncedAt: Date;
-  blockHeight: number;
-  transactionCount: number;
+  transactions: {
+    count: number;
+    blockHeight: number;
+  };
+  wallet: {
+    balance: string;
+    assets: number;
+  };
   error?: string;
 };
 

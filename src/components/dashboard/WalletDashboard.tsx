@@ -2,13 +2,20 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { useWalletAuth } from '@/hooks/useWalletAuth';
+import { useAuth } from '@/context/AuthContext';
+import { useWallet } from '@/hooks/queries/use-wallet-query';
+import { useManualSync } from '@/hooks/mutations/use-sync-mutation';
+import { useInitialSync } from '@/hooks/queries/use-initial-sync';
 import { WalletOverview } from './WalletOverview';
+import { TransactionList } from './TransactionList';
+import { TransactionFilters } from './TransactionFilters';
+import { SyncStatus } from './SyncStatus';
 import { 
   TrendingUp, 
   TrendingDown, 
   Wallet,
-  ArrowUpDown
+  ArrowUpDown,
+  Receipt
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
@@ -19,7 +26,12 @@ import { Card } from '@/components/ui/card';
  * Shows welcome message for unauthenticated users.
  */
 export function WalletDashboard() {
-  const { isAuthenticated, walletData, syncWalletData, isSyncing } = useWalletAuth();
+  const { isAuthenticated } = useAuth();
+  const { walletData, isLoading: isLoadingWallet } = useWallet();
+  const { sync: syncWallet, canSync, isLoading: isSyncing } = useManualSync();
+  
+  // Handle initial sync automatically
+  useInitialSync();
   
   /**
    * Calculate portfolio value from actual wallet data
@@ -48,8 +60,8 @@ export function WalletDashboard() {
   const { value: totalPortfolioValue, change: portfolioChange } = calculatePortfolioValue();
 
   const handleSyncWallet = async () => {
-    if (!isSyncing) {
-      await syncWalletData();
+    if (canSync) {
+      await syncWallet();
     }
   };
 
@@ -86,7 +98,7 @@ export function WalletDashboard() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleSyncWallet}
-              disabled={isSyncing}
+              disabled={!canSync}
               data-testid="dashboard-sync-button"
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors"
             >
@@ -97,7 +109,11 @@ export function WalletDashboard() {
         </motion.div>
 
         {/* Portfolio Overview */}
-        {walletData && (
+        {isLoadingWallet ? (
+          <Card className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 border-border/50 p-8 animate-pulse">
+            <div className="h-32" />
+          </Card>
+        ) : walletData ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -125,10 +141,44 @@ export function WalletDashboard() {
               </div>
             </Card>
           </motion.div>
+        ) : (
+          <Card className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 border-border/50 p-8">
+            <div className="text-center">
+              <p className="text-muted-foreground">No wallet data available yet</p>
+              <p className="text-sm text-muted-foreground mt-2">Click &quot;Sync Wallet&quot; to fetch your latest data</p>
+            </div>
+          </Card>
         )}
 
         {/* Wallet Overview - Shows actual wallet data */}
         <WalletOverview />
+        
+        {/* Transaction Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-6"
+        >
+          {/* Section Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Receipt className="w-6 h-6 text-primary" />
+              <h2 className="text-2xl font-bold">Transaction History</h2>
+            </div>
+          </div>
+          
+          {/* Sync Status */}
+          <SyncStatus />
+          
+          {/* Filters */}
+          <TransactionFilters />
+          
+          {/* Transaction List */}
+          <Card className="p-6">
+            <TransactionList />
+          </Card>
+        </motion.div>
       </div>
     </div>
   );

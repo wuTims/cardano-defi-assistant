@@ -2,13 +2,13 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useWalletAuth } from '@/hooks/useWalletAuth';
+import { useAuth } from '@/context/AuthContext';
 import { WalletConnectButton } from '@/components/WalletConnectButton';
 import { Button } from '@/components/ui/button';
 import { Home, BarChart3 } from 'lucide-react';
 
 export const Navigation: React.FC = () => {
-  const { isAuthenticated } = useWalletAuth();
+  const { isAuthenticated } = useAuth();
 
   return (
     <nav 

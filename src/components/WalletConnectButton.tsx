@@ -4,7 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Wallet, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
-import { useWalletAuth } from '@/hooks/useWalletAuth';
+import { useAuth } from '@/context/AuthContext';
 import { WalletType } from '@/types/auth';
 
 const WALLET_OPTIONS: Array<{ name: string; type: WalletType; color: string }> = [
@@ -18,14 +18,16 @@ const WALLET_OPTIONS: Array<{ name: string; type: WalletType; color: string }> =
 export const WalletConnectButton: React.FC = () => {
   const { 
     isAuthenticated, 
-    connectionState, 
-    walletType, 
-    walletAddress, 
+    user,
+    connectionState,
     error,
     connectWallet, 
     disconnect, 
     clearError 
-  } = useWalletAuth();
+  } = useAuth();
+  
+  const walletType = user?.walletType;
+  const walletAddress = user?.walletAddress;
 
   const handleWalletConnect = async (selectedWalletType: WalletType) => {
     clearError();

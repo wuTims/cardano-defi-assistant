@@ -1,5 +1,13 @@
 # Wallet Sync Service - Claude Guidelines
 
+## Critical Database Guidelines - NEVER Rules
+
+### NEVER Use Reserved Keywords Without Prefixes
+- **NEVER** use `timestamp`, `action`, `protocol` as column names in return tables
+- **ALWAYS** use prefixes like `tx_timestamp`, `tx_action`, `tx_protocol`
+- PostgreSQL reserved keywords must be avoided in function return table definitions
+- This applies to RPC functions, views, and any SQL that returns tables
+
 ## Critical Testing Guidelines - NEVER Rules
 
 ### 1. NEVER Create Advanced/Enhanced/Optimized Classes
@@ -31,6 +39,14 @@
 ### 5. NEVER Use Unverified Assumptions
 - **NEVER** use unverified assumptions in implementing logic
 - If a conditional check or verification isn't accurate, prompt for a verification check
+
+## Key Principles
+1. **No hardcoded values** - Everything configurable
+2. **Centralized services** - Single responsibility principle
+3. **Clean React patterns** - No complex state management
+4. **Test-driven** - Each phase fully tested before proceeding
+5. **Well-documented** - Every component and method documented
+6. **SOLID Principles** - Ensure we are following SOLID development principles as close as possible
 
 ## Testing Architecture Principles
 
