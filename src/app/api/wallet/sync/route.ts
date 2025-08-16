@@ -61,24 +61,31 @@ export const POST = withAuth(async (request, { walletAddress, userId }) => {
       return NextResponse.json(response);
     }
     
-    // Get last sync info from database
+    // Get last sync info from wallets table
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
     
-    const { data: syncStatus } = await supabase
-      .from('wallet_sync_status')
-      .select('last_synced_block, last_synced_at')
+    const { data: wallet } = await supabase
+      .from('wallets')
+      .select('synced_block_height, last_synced_at')
       .eq('wallet_address', walletAddress)
+      .eq('user_id', userId)
       .single();
+    
+    // Determine sync type and starting block
+    const lastSyncedBlock = wallet?.synced_block_height || 0;
+    const syncType = lastSyncedBlock > 0 ? 'incremental' : 'full_sync';
+    
+    logger.info(`Creating ${syncType} sync job from block ${lastSyncedBlock} for wallet ${walletAddress.slice(0, 12)}...`);
     
     // Create sync job data
     const jobData: WalletSyncJobData = {
       walletAddress,
       userId,
-      syncType: 'full_sync',
-      fromBlock: syncStatus?.last_synced_block || 0
+      syncType,
+      fromBlock: lastSyncedBlock
     };
     
     // Add job to queue with normal priority
