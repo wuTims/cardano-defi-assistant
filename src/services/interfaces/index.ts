@@ -17,6 +17,11 @@ import type {
   TxOutput
 } from '@/types/transaction';
 import { TransactionAction, Protocol } from '@/types/transaction';
+import type { 
+  DatabaseWallet, 
+  WalletWithSyncStatus, 
+  WalletSyncStatusUpdate 
+} from '@/types/database';
 
 // WALLET FILTERING INTERFACES
 
@@ -155,6 +160,20 @@ export interface ITransactionFetcher {
   
   fetchTransaction(txHash: string): Promise<RawTransaction | null>;
   getCurrentBlockHeight(): Promise<number>;
+}
+
+// WALLET REPOSITORY INTERFACE
+
+/**
+ * Interface for wallet data persistence
+ * Single Responsibility: Wallet CRUD operations only
+ */
+export interface IWalletRepository {
+  findByAddress(walletAddress: string, userId: string): Promise<DatabaseWallet | null>;
+  findWithSyncStatus(walletAddress: string, userId: string): Promise<WalletWithSyncStatus | null>;
+  updateSyncStatus(walletAddress: string, userId: string, status: WalletSyncStatusUpdate): Promise<void>;
+  create(walletAddress: string, userId: string): Promise<DatabaseWallet>;
+  updateBalance(walletAddress: string, userId: string, balanceLovelace: string): Promise<void>;
 }
 
 // VALIDATION INTERFACES

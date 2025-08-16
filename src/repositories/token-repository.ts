@@ -14,19 +14,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { BaseRepository } from './base-repository';
 import type { ITokenRepository } from '@/services/interfaces';
 import type { TokenInfo, TokenCategory } from '@/types/transaction';
-
-// Database row type
-type DatabaseToken = {
-  unit: string;
-  policy_id: string;
-  asset_name: string;
-  name?: string;
-  ticker?: string;
-  decimals: number;
-  category: string;
-  logo?: string;
-  metadata?: any;
-}
+import type { DatabaseToken } from '@/types/database';
 
 export class TokenRepository extends BaseRepository implements ITokenRepository {
   constructor(supabase: SupabaseClient, logger = console) {
@@ -34,7 +22,7 @@ export class TokenRepository extends BaseRepository implements ITokenRepository 
   }
 
   async findByUnit(unit: string): Promise<TokenInfo | null> {
-    const data = await this.executeReadOperation(
+    const data = await this.executeReadOperation<DatabaseToken>(
       'findTokenByUnit',
       () => this.supabase
         .from('tokens')
@@ -43,7 +31,7 @@ export class TokenRepository extends BaseRepository implements ITokenRepository 
         .single()
     );
 
-    return data ? this.mapToTokenInfo(data as DatabaseToken) : null;
+    return data ? this.mapToTokenInfo(data) : null;
   }
 
   async save(token: TokenInfo): Promise<void> {
@@ -95,7 +83,7 @@ export class TokenRepository extends BaseRepository implements ITokenRepository 
   }
 
   async findByCategory(category: TokenCategory): Promise<TokenInfo[]> {
-    const data = await this.executeReadOperation(
+    const data = await this.executeReadOperation<DatabaseToken[]>(
       'findTokensByCategory',
       () => this.supabase
         .from('tokens')
@@ -103,11 +91,11 @@ export class TokenRepository extends BaseRepository implements ITokenRepository 
         .eq('category', category)
     );
 
-    return (data || []).map((row: DatabaseToken) => this.mapToTokenInfo(row));
+    return (data || []).map(row => this.mapToTokenInfo(row));
   }
 
   async findByPolicy(policyId: string): Promise<TokenInfo[]> {
-    const data = await this.executeReadOperation(
+    const data = await this.executeReadOperation<DatabaseToken[]>(
       'findTokensByPolicy',
       () => this.supabase
         .from('tokens')
@@ -115,7 +103,7 @@ export class TokenRepository extends BaseRepository implements ITokenRepository 
         .eq('policy_id', policyId)
     );
 
-    return (data || []).map((row: DatabaseToken) => this.mapToTokenInfo(row));
+    return (data || []).map(row => this.mapToTokenInfo(row));
   }
 
   async delete(unit: string): Promise<void> {

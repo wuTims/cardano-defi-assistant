@@ -25,7 +25,7 @@ export interface ICacheService {
   /**
    * Delete a value from cache
    */
-  del(key: string): Promise<void>;
+  delete(key: string): Promise<void>;
 
   /**
    * Delete multiple keys matching a pattern

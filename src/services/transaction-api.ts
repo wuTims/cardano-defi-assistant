@@ -2,50 +2,10 @@ import { logger } from '@/lib/logger';
 import { DiagnosticLogger } from '@/utils/diagnostic-logger';
 import { TokenCategory, TransactionAction, Protocol } from '@/types/transaction';
 import type { WalletTransaction, TransactionFilters, WalletAssetFlow, TokenInfo } from '@/types/transaction';
-
-/**
- * Transaction data transfer object from API (snake_case from database)
- */
-interface TransactionDTO {
-  id: string;
-  wallet_address: string;
-  tx_hash: string;
-  tx_timestamp: string;
-  tx_action: string;
-  net_ada_change: string;
-  fees: string;
-  block_height: number;
-  tx_protocol?: string;
-  description?: string;
-  metadata?: string;
-  asset_flows?: AssetFlowDTO[];
-}
-
-/**
- * Asset flow data transfer object from API
- */
-interface AssetFlowDTO {
-  token_unit: string;
-  amount_in: string;
-  amount_out: string;
-  net_change: string;
-  token?: TokenDTO;
-}
-
-/**
- * Token data transfer object from API
- */
-interface TokenDTO {
-  unit: string;
-  policy_id: string;
-  asset_name: string;
-  name: string;
-  ticker: string;
-  decimals: number;
-  category: string;
-  logo?: string;
-  metadata?: Record<string, unknown>;
-}
+import type { 
+  TransactionPaginatedRow,
+  RPCAssetFlow 
+} from '@/types/database';
 
 /**
  * Transaction API response interface
@@ -62,7 +22,7 @@ export interface TransactionResponse {
  * Raw API response structure
  */
 interface RawTransactionResponse {
-  transactions: TransactionDTO[];
+  transactions: TransactionPaginatedRow[];
   hasMore: boolean;
   total: number;
   page: number;
@@ -74,66 +34,66 @@ interface RawTransactionResponse {
 }
 
 /**
- * Transform transaction DTO to domain model
+ * Transform transaction from database/API to domain model
  */
-function transformTransaction(dto: TransactionDTO): WalletTransaction {
+function transformTransaction(row: TransactionPaginatedRow): WalletTransaction {
   // Validate required fields
-  if (!dto.tx_timestamp) {
-    throw new Error(`Transaction ${dto.id} missing required timestamp`);
+  if (!row.tx_timestamp) {
+    throw new Error(`Transaction ${row.transaction_id} missing required timestamp`);
   }
-  if (!dto.tx_hash) {
-    throw new Error(`Transaction ${dto.id} missing required tx_hash`);
+  if (!row.tx_hash) {
+    throw new Error(`Transaction ${row.transaction_id} missing required tx_hash`);
   }
-  if (!dto.wallet_address) {
-    throw new Error(`Transaction ${dto.id} missing required wallet_address`);
+  if (!row.wallet_address) {
+    throw new Error(`Transaction ${row.transaction_id} missing required wallet_address`);
   }
   
   return {
-    id: dto.id,
-    walletAddress: dto.wallet_address,
-    txHash: dto.tx_hash,
-    tx_timestamp: new Date(dto.tx_timestamp),
-    tx_action: dto.tx_action as TransactionAction,
-    netADAChange: BigInt(dto.net_ada_change || 0),
-    fees: BigInt(dto.fees || 0),
-    blockHeight: Number(dto.block_height || 0),
-    tx_protocol: dto.tx_protocol as Protocol | undefined,
-    description: dto.description || '',
-    assetFlows: (dto.asset_flows || []).map(transformAssetFlow)
+    id: row.transaction_id,
+    walletAddress: row.wallet_address,
+    txHash: row.tx_hash,
+    tx_timestamp: new Date(row.tx_timestamp),
+    tx_action: row.tx_action as TransactionAction,
+    netADAChange: BigInt(row.net_ada_change || 0),
+    fees: BigInt(row.fees || 0),
+    blockHeight: Number(row.block_height || 0),
+    tx_protocol: row.tx_protocol as Protocol | undefined,
+    description: row.description || '',
+    assetFlows: transformAssetFlows(row.asset_flows)
   };
 }
 
 /**
- * Transform asset flow DTO to domain model
+ * Transform asset flows from database/API to domain model
  */
-function transformAssetFlow(dto: AssetFlowDTO): WalletAssetFlow {
-  const token: TokenInfo = dto.token ? {
-    unit: dto.token.unit,
-    policyId: dto.token.policy_id,
-    assetName: dto.token.asset_name,
-    name: dto.token.name,
-    ticker: dto.token.ticker,
-    decimals: Number(dto.token.decimals),
-    category: dto.token.category as TokenCategory,
-    logo: dto.token.logo,
-    metadata: dto.token.metadata
-  } : {
-    // Fallback for missing token info
-    unit: dto.token_unit,
-    policyId: dto.token_unit.slice(0, 56),
-    assetName: dto.token_unit.slice(56),
-    name: 'Unknown Token',
-    ticker: 'UNKNOWN',
-    decimals: 0,
-    category: TokenCategory.FUNGIBLE
-  };
+function transformAssetFlows(assetFlows: RPCAssetFlow[] | string | null): WalletAssetFlow[] {
+  if (!assetFlows) return [];
+  
+  // Handle both array and JSON string formats
+  const flows: RPCAssetFlow[] = Array.isArray(assetFlows) 
+    ? assetFlows 
+    : (typeof assetFlows === 'string' ? JSON.parse(assetFlows) : []);
 
-  return {
-    token,
-    amountIn: BigInt(dto.amount_in || 0),
-    amountOut: BigInt(dto.amount_out || 0),
-    netChange: BigInt(dto.net_change || 0)
-  };
+  return flows.map((flow: RPCAssetFlow) => {
+    const token: TokenInfo = {
+      unit: flow.token_unit,
+      policyId: flow.policy_id || flow.token_unit.slice(0, 56),
+      assetName: flow.asset_name || flow.token_unit.slice(56),
+      name: flow.name || 'Unknown Token',
+      ticker: flow.ticker || 'UNKNOWN',
+      decimals: flow.decimals || 0,
+      category: (flow.category || 'fungible') as TokenCategory,
+      logo: flow.logo,
+      metadata: flow.metadata
+    };
+
+    return {
+      token,
+      amountIn: BigInt(flow.in_flow || 0),
+      amountOut: BigInt(flow.out_flow || 0),
+      netChange: BigInt(flow.net_change || 0)
+    };
+  });
 }
 
 /**
@@ -215,12 +175,12 @@ export class TransactionApiService {
       DiagnosticLogger.logClientData('transaction-api.fetchTransactions - Raw Response', data);
 
       // Transform each transaction with proper error handling
-      const transactions = (data.transactions || []).map((dto: TransactionDTO, index: number) => {
+      const transactions = (data.transactions || []).map((row: TransactionPaginatedRow, index: number) => {
         try {
-          const transformed = transformTransaction(dto);
+          const transformed = transformTransaction(row);
           DiagnosticLogger.logTransformation(
             `transaction-api.transformTransaction[${index}]`,
-            dto,
+            row,
             transformed
           );
           return transformed;
@@ -228,7 +188,7 @@ export class TransactionApiService {
           logger.error(`Failed to transform transaction at index ${index}`, error);
           DiagnosticLogger.logClientData(
             `transaction-api.transformTransaction[${index}] - ERROR`,
-            { dto, error }
+            { row, error }
           );
           // Skip invalid transactions
           return null;

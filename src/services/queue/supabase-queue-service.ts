@@ -5,7 +5,7 @@
  * This provides persistence and visibility without additional infrastructure.
  */
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
 import type { 
   IQueueService, 
@@ -13,23 +13,7 @@ import type {
   QueueOptions,
   WalletSyncJobData 
 } from '@/services/interfaces/queue-service';
-
-interface DatabaseSyncJob {
-  id: string;
-  wallet_address: string;
-  user_id: string;
-  status: string;
-  priority: number;
-  job_type: string;
-  created_at: string;
-  started_at?: string;
-  completed_at?: string;
-  error_message?: string;
-  retry_count: number;
-  max_retries: number;
-  metadata: any;
-  last_block_synced?: number;
-}
+import type { DatabaseSyncJob } from '@/types/database';
 
 export class SupabaseQueueService implements IQueueService {
   private supabase: SupabaseClient;
@@ -76,7 +60,7 @@ export class SupabaseQueueService implements IQueueService {
         throw new Error(`Failed to add job to queue: ${error.message}`);
       }
 
-      return this.mapToQueueJob<T>(job);
+      return this.mapToQueueJob<T>(job as DatabaseSyncJob);
     } catch (error) {
       logger.error('Error adding job to queue', error);
       throw error;
@@ -89,8 +73,10 @@ export class SupabaseQueueService implements IQueueService {
   async getNext(type?: string): Promise<QueueJob | null> {
     try {
       // Use the database function to get and lock the next job
-      const { data, error } = await this.supabase
+      const result = await this.supabase
         .rpc('get_next_sync_job');
+      
+      const { data, error } = result as { data: DatabaseSyncJob | null; error: PostgrestError | null };
 
       if (error) {
         logger.error('Error getting next job', error);
@@ -101,7 +87,7 @@ export class SupabaseQueueService implements IQueueService {
         return null;
       }
 
-      return this.mapToQueueJob(data);
+      return this.mapToQueueJob<WalletSyncJobData>(data);
     } catch (error) {
       logger.error('Error getting next job from queue', error);
       return null;
@@ -171,7 +157,7 @@ export class SupabaseQueueService implements IQueueService {
         return null;
       }
 
-      return this.mapToQueueJob<T>(data);
+      return this.mapToQueueJob<T>(data as DatabaseSyncJob);
     } catch (error) {
       logger.error('Error getting job', error);
       return null;
@@ -194,7 +180,7 @@ export class SupabaseQueueService implements IQueueService {
         throw new Error(`Failed to get jobs for wallet: ${error.message}`);
       }
 
-      return (data || []).map(job => this.mapToQueueJob(job));
+      return (data || []).map((job: DatabaseSyncJob) => this.mapToQueueJob<WalletSyncJobData>(job));
     } catch (error) {
       logger.error('Error getting jobs by wallet', error);
       return [];
@@ -344,26 +330,26 @@ export class SupabaseQueueService implements IQueueService {
   /**
    * Map database row to QueueJob interface
    */
-  private mapToQueueJob<T = any>(row: DatabaseSyncJob): QueueJob<T> {
-    const data = row.metadata?.data || {
-      walletAddress: row.wallet_address,
-      userId: row.user_id,
-      syncType: row.job_type
+  private mapToQueueJob<T = any>(dbJob: DatabaseSyncJob): QueueJob<T> {
+    const data = dbJob.metadata?.data || {
+      walletAddress: dbJob.wallet_address,
+      userId: dbJob.user_id,
+      syncType: dbJob.job_type
     } as T;
 
     return {
-      id: row.id,
-      type: row.job_type,
+      id: dbJob.id,
+      type: dbJob.job_type,
       data,
-      status: row.status as any,
-      priority: row.priority,
-      createdAt: new Date(row.created_at),
-      startedAt: row.started_at ? new Date(row.started_at) : undefined,
-      completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
-      error: row.error_message,
-      retryCount: row.retry_count,
-      maxRetries: row.max_retries,
-      metadata: row.metadata
+      status: dbJob.status as any,
+      priority: dbJob.priority,
+      createdAt: new Date(dbJob.created_at),
+      startedAt: dbJob.started_at ? new Date(dbJob.started_at) : undefined,
+      completedAt: dbJob.completed_at ? new Date(dbJob.completed_at) : undefined,
+      error: dbJob.error_message,
+      retryCount: dbJob.retry_count,
+      maxRetries: dbJob.max_retries,
+      metadata: dbJob.metadata
     };
   }
 }

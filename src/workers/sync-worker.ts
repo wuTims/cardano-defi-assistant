@@ -71,7 +71,7 @@ export class SyncWorker {
         // Wait before checking for next job
         await this.sleep(5000); // 5 seconds
       } catch (error) {
-        logger.error('Error in sync worker loop', error);
+        logger.error(`Error in sync worker loop: ${error}`);
         await this.sleep(10000); // Wait longer on error
       }
     }
@@ -100,11 +100,11 @@ export class SyncWorker {
     logger.info(`Processing sync job ${job.id} for wallet ${job.data.walletAddress}`);
     
     try {
-      await this.processJob(job);
-      await queueService.complete(job.id);
-      logger.info(`Completed sync job ${job.id}`);
+      const lastBlock = await this.processJob(job);
+      await queueService.complete(job.id, { lastBlock });
+      logger.info(`Completed sync job ${job.id} at block ${lastBlock}`);
     } catch (error) {
-      logger.error(`Failed to process job ${job.id}`, error);
+      logger.error(`Failed to process job ${job.id}: ${error}`);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       await queueService.fail(job.id, errorMessage);
     }
@@ -112,8 +112,9 @@ export class SyncWorker {
 
   /**
    * Process a single sync job
+   * Returns the last block that was synced
    */
-  private async processJob(job: QueueJob<WalletSyncJobData>): Promise<void> {
+  private async processJob(job: QueueJob<WalletSyncJobData>): Promise<number> {
     const { walletAddress, userId, fromBlock } = job.data;
     
     // Get current block height
@@ -146,12 +147,36 @@ export class SyncWorker {
           // Small delay to avoid rate limits
           await this.sleep(50);
         } catch (error) {
-          logger.error(`Failed to process transaction ${hash}`, error);
+          logger.error(`Failed to process transaction ${hash}: ${error}`);
           batchErrors++;
         }
         
         // Save batch when it reaches BATCH_SIZE
         if (batchTransactions.length >= BATCH_SIZE) {
+          try {
+            await this.repos.transaction.saveBatch(batchTransactions, userId);
+            totalProcessed += batchTransactions.length;
+            totalErrors += batchErrors;
+            
+            // Update job progress
+            await this.updateJobProgress(job.id, {
+              processed: totalProcessed,
+              errors: totalErrors
+            });
+            
+            // Clear the batch
+            batchTransactions.length = 0;
+            batchErrors = 0;
+          } catch (error) {
+            logger.error(`Failed to save batch of ${batchTransactions.length} transactions: ${error}`);
+            throw new Error(`Batch save failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
+        }
+      }
+      
+      // Save any remaining transactions in the batch
+      if (batchTransactions.length > 0) {
+        try {
           await this.repos.transaction.saveBatch(batchTransactions, userId);
           totalProcessed += batchTransactions.length;
           totalErrors += batchErrors;
@@ -161,34 +186,63 @@ export class SyncWorker {
             processed: totalProcessed,
             errors: totalErrors
           });
-          
-          // Clear the batch
-          batchTransactions.length = 0;
-          batchErrors = 0;
+        } catch (error) {
+          logger.error(`Failed to save final batch of ${batchTransactions.length} transactions: ${error}`);
+          throw new Error(`Final batch save failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
-      }
-      
-      // Save any remaining transactions in the batch
-      if (batchTransactions.length > 0) {
-        await this.repos.transaction.saveBatch(batchTransactions, userId);
-        totalProcessed += batchTransactions.length;
-        totalErrors += batchErrors;
-        
-        // Update job progress
-        await this.updateJobProgress(job.id, {
-          processed: totalProcessed,
-          errors: totalErrors
-        });
       }
     }
     
-    // Update sync status
-    await this.updateSyncStatus(walletAddress, userId, currentBlock);
+    // Fetch actual balance from Blockfrost (source of truth)
+    let actualBalance = '0';
+    try {
+      actualBalance = await this.blockfrost.getAddressBalance(walletAddress);
+      logger.info(`Fetched wallet balance from Blockfrost: ${actualBalance} lovelace`);
+    } catch (error) {
+      logger.error(`Failed to fetch wallet balance: ${error}`);
+      // Continue without updating balance
+    }
+    
+    // Optional: Calculate balance from our transactions for validation
+    if (totalProcessed > 0) {
+      try {
+        const { data: balanceData } = await this.supabase
+          .rpc('calculate_wallet_balance', {
+            p_wallet_address: walletAddress,
+            p_user_id: userId
+          });
+        const calculatedBalance = balanceData?.balance || '0';
+        
+        // Compare and log any discrepancy
+        if (calculatedBalance !== actualBalance) {
+          const diff = BigInt(actualBalance) - BigInt(calculatedBalance);
+          logger.warn(`Balance discrepancy! Calculated: ${calculatedBalance}, Actual: ${actualBalance}, Diff: ${diff}`);
+        }
+      } catch (error) {
+        logger.warn(`Failed to calculate balance for validation: ${error}`);
+      }
+    }
+    
+    // Update sync status with actual balance
+    try {
+      await this.updateSyncStatus(walletAddress, userId, currentBlock, actualBalance);
+    } catch (error) {
+      logger.error(`Failed to update sync status: ${error}`);
+      throw new Error(`Failed to update sync status: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
     
     // Clear caches
-    await this.clearCaches(walletAddress);
+    try {
+      await this.clearCaches(walletAddress);
+    } catch (error) {
+      logger.warn(`Failed to clear caches (non-critical): ${error}`);
+      // Don't throw - cache clearing is non-critical
+    }
     
     logger.info(`Sync complete: ${totalProcessed} transactions processed, ${totalErrors} errors`);
+    
+    // Return the last block that was synced
+    return currentBlock;
   }
 
   /**
@@ -215,17 +269,29 @@ export class SyncWorker {
   private async updateSyncStatus(
     walletAddress: string,
     userId: string,
-    lastBlock: number
+    lastBlock: number,
+    balance?: string
   ): Promise<void> {
-    await this.supabase
+    const updateData: any = {
+      synced_block_height: lastBlock,
+      last_synced_at: new Date().toISOString(),
+      sync_in_progress: false
+    };
+    
+    // Only update balance if provided
+    if (balance) {
+      updateData.balance_lovelace = balance;
+    }
+    
+    const { error } = await this.supabase
       .from('wallets')
-      .update({
-        synced_block_height: lastBlock,
-        last_synced_at: new Date().toISOString(),
-        sync_in_progress: false
-      })
+      .update(updateData)
       .eq('wallet_address', walletAddress)
       .eq('user_id', userId);
+    
+    if (error) {
+      throw new Error(`Failed to update wallet sync status: ${error.message}`);
+    }
   }
 
   /**
@@ -236,7 +302,7 @@ export class SyncWorker {
     const txCache = ServiceFactory.getTransactionsCache();
     
     // Clear wallet cache
-    await walletCache.del(ServiceFactory.cacheKey.wallet(walletAddress));
+    await walletCache.delete(ServiceFactory.cacheKey.wallet(walletAddress));
     
     // Clear transaction cache (pattern-based deletion)
     await txCache.delPattern(`tx:${walletAddress}:*`);

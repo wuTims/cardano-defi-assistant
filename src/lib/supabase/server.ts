@@ -3,7 +3,7 @@
  * Uses service role key for administrative operations
  */
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import { config } from '../config';
 import { logger } from '../logger';
 
@@ -168,11 +168,13 @@ export const authDatabase = {
     try {
       const client = getSupabaseServerClient();
       
-      const { data, error } = await client
+      const result = await client
         .rpc('upsert_app_user', {
           p_wallet_addr: walletAddr,
           p_wallet_type: walletType || null
         });
+      
+      const { data, error } = result as { data: string | null; error: PostgrestError | null };
 
       if (error) {
         logger.error('Failed to upsert user', error);
@@ -181,7 +183,7 @@ export const authDatabase = {
 
       return {
         success: true,
-        data: { id: data }
+        data: { id: data || '' }
       };
     } catch (error) {
       logger.error('Database error upserting user', error);

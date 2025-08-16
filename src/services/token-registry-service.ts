@@ -110,12 +110,22 @@ export class TokenRegistryService implements ITokenRegistry {
       
       // 4. Return basic token info as fallback
       const basicToken = this.createBasicTokenInfo(unit);
+      // Save unknown token to database to avoid foreign key constraints
+      await this.repository.save(basicToken);
       this.cache.set(unit, basicToken);
       return basicToken;
       
     } catch (error) {
       console.error(`Error getting token info for ${unit}:`, error);
-      return this.createBasicTokenInfo(unit);
+      // Even in error case, save basic token to avoid foreign key constraints
+      const basicToken = this.createBasicTokenInfo(unit);
+      try {
+        await this.repository.save(basicToken);
+        this.cache.set(unit, basicToken);
+      } catch (saveError) {
+        console.error(`Failed to save basic token for ${unit}:`, saveError);
+      }
+      return basicToken;
     }
   }
 

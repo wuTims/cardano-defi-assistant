@@ -10,11 +10,12 @@ import { CardanoAuthService } from '@/services/cardano-auth-service';
 
 /**
  * Authentication context passed to protected routes
+ * All fields are guaranteed to be present after successful authentication
  */
 export interface AuthContext {
   walletAddress: string;
-  userId?: string;
-  walletType?: string;
+  userId: string;  // Always present after successful auth
+  walletType: string;  // Always present after successful auth
 }
 
 /**
@@ -69,11 +70,20 @@ export function withAuth(handler: AuthenticatedHandler) {
         );
       }
       
-      // Build auth context
+      // Build auth context - ensure all required fields are present
+      const { walletAddress, userId, walletType } = authResponse.data;
+      
+      if (!walletAddress || !userId) {
+        return NextResponse.json(
+          { error: 'Invalid token data: missing required fields' },
+          { status: 401 }
+        );
+      }
+      
       const context: AuthContext = {
-        walletAddress: authResponse.data.walletAddress,
-        userId: authResponse.data.userId,
-        walletType: authResponse.data.walletType
+        walletAddress,
+        userId,
+        walletType: walletType || 'unknown'  // Default if not provided
       };
       
       // Call the actual route handler with auth context

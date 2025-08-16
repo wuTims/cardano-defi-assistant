@@ -14,33 +14,15 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { BaseRepository } from './base-repository';
 import { DiagnosticLogger } from '@/utils/diagnostic-logger';
 import type { ITransactionRepository } from '@/services/interfaces';
-import type { WalletTransaction, TransactionFilters } from '@/types/transaction';
-
-// Database row types (data shapes, not interfaces)
-type DatabaseTransaction = {
-  id: string;
-  user_id: string;
-  wallet_address: string;
-  tx_hash: string;
-  block_height: number;
-  tx_timestamp: string;    // Using tx_ prefix consistently
-  tx_action: string;        // Using tx_ prefix consistently
-  tx_protocol?: string;     // Using tx_ prefix consistently
-  description: string;
-  net_ada_change: string;
-  fees: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-type DatabaseAssetFlow = {
-  id?: string;
-  transaction_id: string;
-  token_unit: string;
-  net_change: string;
-  in_flow: string;
-  out_flow: string;
-}
+import type { WalletTransaction, TransactionFilters, TransactionAction, Protocol } from '@/types/transaction';
+import type { 
+  DatabaseTransaction, 
+  DatabaseAssetFlow, 
+  BulkInsertResult,
+  TransactionPaginatedRow,
+  DatabaseTransactionWithFlows,
+  TransactionBlockHeight
+} from '@/types/database';
 
 export class WalletTransactionRepository extends BaseRepository implements ITransactionRepository {
   constructor(supabase: SupabaseClient, logger = console) {
@@ -118,7 +100,7 @@ export class WalletTransactionRepository extends BaseRepository implements ITran
       }))
     }));
 
-    const result = await this.executeReadOperation(
+    const result = await this.executeReadOperation<BulkInsertResult>(
       'bulkInsertTransactions',
       () => this.supabase.rpc('bulk_insert_transactions', { p_transactions: payload })
     );
@@ -129,7 +111,7 @@ export class WalletTransactionRepository extends BaseRepository implements ITran
   }
 
   async findByUser(userId: string, filters?: TransactionFilters): Promise<WalletTransaction[]> {
-    const data = await this.executeReadOperation(
+    const data = await this.executeReadOperation<TransactionPaginatedRow[]>(
       'findTransactionsByUser',
       () => this.supabase.rpc('get_transactions_paginated', {
         p_user_id: userId,
@@ -151,7 +133,7 @@ export class WalletTransactionRepository extends BaseRepository implements ITran
       data
     );
 
-    return (data as any[]).map(row => {
+    return data.map(row => {
       const mapped = this.mapToWalletTransaction(row);
       DiagnosticLogger.logTransformation(
         'WalletTransactionRepository.mapToWalletTransaction',
@@ -163,7 +145,7 @@ export class WalletTransactionRepository extends BaseRepository implements ITran
   }
 
   async findByTxHash(txHash: string, userId: string): Promise<WalletTransaction | null> {
-    const data = await this.executeReadOperation(
+    const data = await this.executeReadOperation<DatabaseTransactionWithFlows>(
       'findTransactionByHash',
       () => this.supabase
         .from('wallet_transactions')
@@ -183,7 +165,7 @@ export class WalletTransactionRepository extends BaseRepository implements ITran
   }
 
   async getLatestBlock(userId: string): Promise<number | null> {
-    const data = await this.executeReadOperation<Pick<DatabaseTransaction, 'block_height'>>(
+    const data = await this.executeReadOperation<TransactionBlockHeight>(
       'getLatestBlock',
       () => this.supabase
         .from('wallet_transactions')
@@ -218,21 +200,24 @@ export class WalletTransactionRepository extends BaseRepository implements ITran
     );
   }
 
-  private mapToWalletTransaction(row: any): WalletTransaction {
+  private mapToWalletTransaction(row: TransactionPaginatedRow | DatabaseTransactionWithFlows): WalletTransaction {
     const assetFlows = row.asset_flows 
       ? (Array.isArray(row.asset_flows) 
           ? row.asset_flows 
           : JSON.parse(row.asset_flows))
       : [];
 
+    // Handle both TransactionPaginatedRow (has transaction_id) and DatabaseTransactionWithFlows (has id)
+    const id = 'transaction_id' in row ? row.transaction_id : row.id;
+
     return {
-      id: row.transaction_id || row.id,
+      id: id,
       walletAddress: row.wallet_address,
       txHash: row.tx_hash,
       blockHeight: row.block_height,
       tx_timestamp: new Date(row.tx_timestamp),  // Now always tx_timestamp
-      tx_action: row.tx_action,                  // Now always tx_action
-      tx_protocol: row.tx_protocol || undefined,  // Now always tx_protocol
+      tx_action: row.tx_action as TransactionAction,  // Cast to enum type
+      tx_protocol: row.tx_protocol as Protocol | undefined,  // Cast to enum type
       description: row.description,
       netADAChange: BigInt(row.net_ada_change),
       fees: BigInt(row.fees),

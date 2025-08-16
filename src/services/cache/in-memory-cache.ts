@@ -90,7 +90,7 @@ export class InMemoryCache implements ICacheService {
   /**
    * Delete a value from cache
    */
-  async del(key: string): Promise<void> {
+  async delete(key: string): Promise<void> {
     this.cache.delete(key);
   }
 

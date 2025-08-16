@@ -16,16 +16,8 @@ import { TransactionAction, Protocol, TokenCategory } from '@/types/transaction'
 import type { ITransactionCategorizer, ICategorizationRule } from '@/services/interfaces';
 import { ProtocolTokenRegistry, detectPotentialQToken } from '@/config/protocol-tokens';
 
-// Simple logger interface (can be replaced with winston, pino, etc.)
-interface Logger {
-  debug(message: string, data?: any): void;
-  info(message: string, data?: any): void;
-  warn(message: string, data?: any): void;
-  error(message: string, data?: any): void;
-}
-
-// Default console logger
-class ConsoleLogger implements Logger {
+// Default console logger (using built-in Console type)
+class ConsoleLogger {
   debug(message: string, data?: any): void {
     console.log(`[DEBUG] ${message}`, data ? JSON.stringify(data, null, 2) : '');
   }
@@ -44,11 +36,11 @@ class ConsoleLogger implements Logger {
  * Abstract base class for categorization rules
  */
 abstract class BaseCategorizationRule implements ICategorizationRule {
-  protected logger: Logger;
+  protected logger: Console | ConsoleLogger;
   
   constructor(
     public readonly priority: number,
-    logger?: Logger
+    logger?: Console | ConsoleLogger
   ) {
     this.logger = logger || new ConsoleLogger();
   }
@@ -83,7 +75,7 @@ abstract class BaseCategorizationRule implements ICategorizationRule {
 class LiqwidLendingRule extends BaseCategorizationRule {
   private registry = ProtocolTokenRegistry.getInstance();
   
-  constructor(logger?: Logger) {
+  constructor(logger?: Console | ConsoleLogger) {
     super(1, logger); // Highest priority
   }
 
@@ -254,7 +246,7 @@ abstract class BaseDEXRule extends BaseCategorizationRule {
  * Minswap DEX Rule
  */
 class MinswapDEXRule extends BaseDEXRule {
-  constructor(logger?: Logger) {
+  constructor(logger?: Console | ConsoleLogger) {
     super(2, logger);
   }
 
@@ -294,7 +286,7 @@ class MinswapDEXRule extends BaseDEXRule {
  * Detects stake reward withdrawals and delegation changes
  */
 class StakeRewardsRule extends BaseCategorizationRule {
-  constructor(logger?: Logger) {
+  constructor(logger?: Console | ConsoleLogger) {
     super(10, logger);
   }
 
@@ -359,7 +351,7 @@ class StakeRewardsRule extends BaseCategorizationRule {
  * Simple Transfer Rule (Catch-all)
  */
 class SimpleTransferRule extends BaseCategorizationRule {
-  constructor(logger?: Logger) {
+  constructor(logger?: Console | ConsoleLogger) {
     super(100, logger); // Lowest priority
   }
 
@@ -432,11 +424,11 @@ class SimpleTransferRule extends BaseCategorizationRule {
  */
 export class TransactionCategorizerService implements ITransactionCategorizer {
   private rules: ICategorizationRule[];
-  private logger: Logger;
+  private logger: Console | ConsoleLogger;
 
   constructor(
     rules?: ICategorizationRule[],
-    logger?: Logger
+    logger?: Console | ConsoleLogger
   ) {
     this.logger = logger || new ConsoleLogger();
     

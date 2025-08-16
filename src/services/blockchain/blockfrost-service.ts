@@ -230,6 +230,23 @@ export class BlockfrostService implements IBlockchainDataFetcher {
   }
 
   /**
+   * Get address balance (just ADA/lovelace)
+   */
+  async getAddressBalance(address: string): Promise<string> {
+    try {
+      const addressInfo = await this.api.addresses(address);
+      // Find lovelace amount in the response
+      const lovelaceAmount = addressInfo.amount.find(
+        (a: any) => a.unit === 'lovelace'
+      )?.quantity || '0';
+      return lovelaceAmount;
+    } catch (error) {
+      logger.error(`Error fetching balance for ${address}: ${error instanceof Error ? error.message : String(error)}`);
+      return '0';
+    }
+  }
+
+  /**
    * Get current blockchain height
    */
   async getCurrentBlockHeight(): Promise<number> {

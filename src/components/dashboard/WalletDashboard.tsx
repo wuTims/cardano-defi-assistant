@@ -45,7 +45,7 @@ export function WalletDashboard() {
     const adaBalance = lovelaceBalance / 1_000_000;
     
     // TODO: Fetch real ADA price from price service
-    const adaPrice = 0.45; // Placeholder until price service integration
+    const adaPrice = 0.95; // Updated placeholder price
     const totalValue = adaBalance * adaPrice;
     
     // TODO: Calculate actual 24h change from historical data

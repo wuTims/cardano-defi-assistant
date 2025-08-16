@@ -8,7 +8,9 @@
 import type { RawTransaction } from '@/types/transaction';
 
 /**
- * UTXO data structure from blockchain
+ * UTXO data structure from blockchain API (snake_case)
+ * Note: This is different from CardanoUTXO which uses camelCase
+ * This matches the Blockfrost API response format
  */
 export type UTXO = {
   readonly tx_hash: string;
