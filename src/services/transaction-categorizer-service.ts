@@ -470,52 +470,46 @@ export class TransactionCategorizerService implements ITransactionCategorizer {
       blockTime: tx.block_time
     });
 
-    // Enhanced categorization debugging with comprehensive transaction analysis
+    // Enhanced categorization debugging split into multiple calls
+    
+    // Log transaction characteristics
     txLogger.debug({
-      // Transaction characteristics
-      transactionData: {
-        txHash: tx.hash,
-        blockHeight: tx.block_height,
-        blockTime: tx.block_time,
-        fees: tx.fees,
-        slot: tx.slot
-      },
-      // Asset flow analysis for categorization
-      assetFlowAnalysis: {
-        totalFlows: flows.length,
-        flowsByDirection: {
-          incoming: flows.filter(f => f.netChange > 0).length,
-          outgoing: flows.filter(f => f.netChange < 0).length
-        },
-        assetTypes: flows.map(f => ({
-          unit: f.token.unit,
+      blockHeight: tx.block_height,
+      blockTime: tx.block_time,
+      fees: tx.fees,
+      slot: tx.slot
+    }, 'Transaction characteristics');
+    
+    // Log asset flow summary (avoid large arrays)
+    txLogger.debug({
+      totalFlows: flows.length,
+      incomingFlows: flows.filter(f => f.netChange > 0).length,
+      outgoingFlows: flows.filter(f => f.netChange < 0).length,
+      uniqueAssets: new Set(flows.map(f => f.token.unit)).size,
+      netADAFlow: flows.find(f => f.token.unit === 'lovelace')?.netChange.toString() || '0'
+    }, 'Asset flow summary');
+    
+    // Log first few asset flows for analysis
+    if (flows.length > 0) {
+      txLogger.debug({
+        sampleFlows: flows.slice(0, 3).map(f => ({
+          unit: f.token.unit.slice(0, 20) + (f.token.unit.length > 20 ? '...' : ''),
           ticker: f.token.ticker,
           netChange: f.netChange.toString(),
-          amountIn: f.amountIn.toString(),
-          amountOut: f.amountOut.toString(),
-          isNative: f.token.unit !== 'lovelace',
-          isPotentialQToken: f.token.ticker?.toLowerCase().includes('q') || false
-        })),
-        netADAFlow: flows.find(f => f.token.unit === 'lovelace')?.netChange.toString() || '0',
-        uniqueAssetCount: new Set(flows.map(f => f.token.unit)).size
-      },
-      // Transaction features for rule matching
-      categorizationFeatures: {
-        hasMetadata: !!tx.metadata,
-        metadataKeys: tx.metadata ? Object.keys(tx.metadata) : [],
-        hasWithdrawals: !!(tx.withdrawals?.length),
-        withdrawalCount: tx.withdrawals?.length || 0,
-        hasCertificates: !!(tx.certificates?.length),
-        certificateTypes: tx.certificates?.map(c => c.type) || [],
-        hasNativeAssets: flows.some(f => f.token.unit !== 'lovelace'),
-        hasMultipleAssets: new Set(flows.map(f => f.token.unit)).size > 1
-      },
-      // Available rules for matching
-      availableRules: this.rules.map(r => ({
-        name: r.constructor.name,
-        priority: r.priority
-      }))
-    }, 'Starting comprehensive transaction categorization');
+          isNative: f.token.unit !== 'lovelace'
+        }))
+      }, 'Sample asset flows');
+    }
+    
+    // Log transaction features
+    txLogger.debug({
+      hasMetadata: !!tx.metadata,
+      metadataKeyCount: tx.metadata ? Object.keys(tx.metadata).length : 0,
+      hasWithdrawals: !!(tx.withdrawals?.length),
+      withdrawalCount: tx.withdrawals?.length || 0,
+      hasCertificates: !!(tx.certificates?.length),
+      certificateCount: tx.certificates?.length || 0
+    }, 'Transaction features for categorization');
 
     // Apply rules in priority order - first match wins
     for (const rule of this.rules) {

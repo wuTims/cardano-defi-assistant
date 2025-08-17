@@ -138,32 +138,37 @@ export class WalletTransactionRepository extends BaseRepository implements ITran
     return data.map(row => {
       const mapped = this.mapToWalletTransaction(row);
       
-      // Comprehensive logging for transaction categorization debugging
-      repoLogger.debug({
-        txHash: row.tx_hash,
-        // Raw database fields for categorization analysis  
+      // Comprehensive logging split into multiple calls to prevent worker crashes
+      const txLogger = repoLogger.child({ txHash: row.tx_hash });
+      
+      // Log database fields
+      txLogger.debug({
         rawAction: row.tx_action,
         rawProtocol: row.tx_protocol,
-        // Asset flow data for categorization debugging
-        assetFlows: {
-          flowCount: Array.isArray(row.asset_flows) ? row.asset_flows.length : 0,
-          flows: Array.isArray(row.asset_flows) ? row.asset_flows.map((flow: any) => ({
-            tokenUnit: flow.token_unit,
-            netChange: flow.net_change,
-            tokenTicker: flow.token_ticker
-          })) : []
-        },
-        // Transaction characteristics for categorization
-        txCharacteristics: {
-          fees: row.fees,
-          netAdaChange: row.net_ada_change,
-          blockHeight: row.block_height,
-          description: row.description
-        },
-        // Mapped result for comparison
+        fees: row.fees,
+        netAdaChange: row.net_ada_change,
+        blockHeight: row.block_height
+      }, 'Transaction database fields');
+      
+      // Log asset flows (in smaller chunks)
+      if (Array.isArray(row.asset_flows) && row.asset_flows.length > 0) {
+        txLogger.debug({
+          flowCount: row.asset_flows.length,
+          flowSummary: row.asset_flows.slice(0, 3).map((flow: any) => ({
+            unit: flow.token_unit?.slice(0, 16) + '...',
+            change: flow.net_change,
+            ticker: flow.token_ticker
+          }))
+        }, 'Transaction asset flows');
+      }
+      
+      // Log mapping results
+      txLogger.debug({
         mappedAction: mapped.tx_action,
-        mappedProtocol: mapped.tx_protocol
-      }, 'Transaction mapped with categorization debug data');
+        mappedProtocol: mapped.tx_protocol,
+        actionChanged: row.tx_action !== mapped.tx_action,
+        protocolChanged: row.tx_protocol !== mapped.tx_protocol
+      }, 'Transaction mapping results');
       
       return mapped;
     });

@@ -9,7 +9,11 @@ const nextConfig = {
   // Exclude WASM packages from server-side bundling (Next.js 15+ solution)
   serverExternalPackages: [
     '@emurgo/cardano-serialization-lib-nodejs',
-    '@emurgo/cardano-message-signing-nodejs'
+    '@emurgo/cardano-message-signing-nodejs',
+    // Pino packages to fix "worker has exited" errors
+    'pino',
+    'pino-pretty',
+    'thread-stream'
   ],
   webpack: (config, { isServer }) => {
     // Enable WASM for both client and server to avoid module parsing errors
