@@ -153,14 +153,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           tokenData = JSON.parse(storedToken);
         } catch (error) {
-          logger.error('Invalid token format in localStorage', error);
+          logger.error({ err: error }, 'Invalid token format in localStorage');
           localStorage.removeItem('wallet-sync-auth-token');
           return;
         }
 
         // Validate token structure
         if (!tokenData.token || !tokenData.walletAddress || !tokenData.userId) {
-          logger.error('Incomplete token data in localStorage');
+          logger.error({ err: error }, 'Incomplete token data in localStorage');
           localStorage.removeItem('wallet-sync-auth-token');
           return;
         }
@@ -185,7 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         logger.info('Authentication restored from storage');
       } catch (error) {
-        logger.error('Failed to initialize auth from storage', error);
+        logger.error({ err: error }, 'Failed to initialize auth from storage');
         localStorage.removeItem('wallet-sync-auth-token');
       }
     };
@@ -273,7 +273,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const errorMessage = error instanceof Error ? error.message : 'Failed to connect wallet';
       setError(errorMessage);
       setConnectionState(WalletConnectionState.ERROR);
-      logger.error('Wallet connection failed', error);
+      logger.error({ err: error }, 'Wallet connection failed');
     }
   }, [requestNonce, verifySignature]);
 
@@ -313,7 +313,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       logger.info('Token refreshed successfully');
     } catch (error) {
-      logger.error('Token refresh failed', error);
+      logger.error({ err: error }, 'Token refresh failed');
       // If refresh fails, logout user
       disconnect();
       throw error;

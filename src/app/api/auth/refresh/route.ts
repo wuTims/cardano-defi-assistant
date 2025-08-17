@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response, { status: 200 });
 
   } catch (error) {
-    logger.error('Refresh endpoint error', error);
+    logger.error({ err: error }, 'Refresh endpoint error');
     
     return NextResponse.json(
       { error: 'Internal server error' },

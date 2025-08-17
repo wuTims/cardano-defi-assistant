@@ -62,7 +62,7 @@ export class SupabaseQueueService implements IQueueService {
 
       return this.mapToQueueJob<T>(job as DatabaseSyncJob);
     } catch (error) {
-      logger.error('Error adding job to queue', error);
+      logger.error({ err: error }, 'Error adding job to queue');
       throw error;
     }
   }
@@ -79,7 +79,7 @@ export class SupabaseQueueService implements IQueueService {
       const { data, error } = result as { data: DatabaseSyncJob | null; error: PostgrestError | null };
 
       if (error) {
-        logger.error('Error getting next job', error);
+        logger.error({ err: error }, 'Error getting next job');
         return null;
       }
 
@@ -89,7 +89,7 @@ export class SupabaseQueueService implements IQueueService {
 
       return this.mapToQueueJob<WalletSyncJobData>(data);
     } catch (error) {
-      logger.error('Error getting next job from queue', error);
+      logger.error({ err: error }, 'Error getting next job from queue');
       return null;
     }
   }
@@ -113,7 +113,7 @@ export class SupabaseQueueService implements IQueueService {
 
       logger.info(`Job ${jobId} completed successfully`);
     } catch (error) {
-      logger.error('Error completing job', error);
+      logger.error({ err: error }, 'Error completing job');
       throw error;
     }
   }
@@ -137,7 +137,7 @@ export class SupabaseQueueService implements IQueueService {
 
       logger.error(`Job ${jobId} failed: ${error}`);
     } catch (err) {
-      logger.error('Error marking job as failed', err);
+      logger.error({ err }, 'Error marking job as failed');
       throw err;
     }
   }
@@ -159,7 +159,7 @@ export class SupabaseQueueService implements IQueueService {
 
       return this.mapToQueueJob<T>(data as DatabaseSyncJob);
     } catch (error) {
-      logger.error('Error getting job', error);
+      logger.error({ err: error }, 'Error getting job');
       return null;
     }
   }
@@ -182,7 +182,7 @@ export class SupabaseQueueService implements IQueueService {
 
       return (data || []).map((job: DatabaseSyncJob) => this.mapToQueueJob<WalletSyncJobData>(job));
     } catch (error) {
-      logger.error('Error getting jobs by wallet', error);
+      logger.error({ err: error }, 'Error getting jobs by wallet');
       return [];
     }
   }
@@ -207,7 +207,7 @@ export class SupabaseQueueService implements IQueueService {
 
       logger.info(`Job ${jobId} cancelled`);
     } catch (error) {
-      logger.error('Error cancelling job', error);
+      logger.error({ err: error }, 'Error cancelling job');
       throw error;
     }
   }
@@ -257,7 +257,7 @@ export class SupabaseQueueService implements IQueueService {
 
       return stats;
     } catch (error) {
-      logger.error('Error getting queue stats', error);
+      logger.error({ err: error }, 'Error getting queue stats');
       return { pending: 0, processing: 0, completed: 0, failed: 0 };
     }
   }
@@ -277,7 +277,7 @@ export class SupabaseQueueService implements IQueueService {
       logger.info('Old sync jobs cleaned up');
       return 0; // Count not returned by function, could be enhanced
     } catch (error) {
-      logger.error('Error cleaning up old jobs', error);
+      logger.error({ err: error }, 'Error cleaning up old jobs');
       return 0;
     }
   }

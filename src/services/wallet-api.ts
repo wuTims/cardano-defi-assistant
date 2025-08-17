@@ -48,7 +48,7 @@ export class WalletApiService {
       
       // Defensive check - address should always be present from our API
       if (!data.address) {
-        logger.error('API returned wallet data without address', data);
+        logger.error({ data }, 'API returned wallet data without address');
         throw new Error('Invalid wallet data: missing address');
       }
       
@@ -71,7 +71,7 @@ export class WalletApiService {
         logger.info('Wallet request cancelled');
         throw new Error('Request cancelled');
       }
-      logger.error('Failed to fetch wallet data', error);
+      logger.error({ err: error }, 'Failed to fetch wallet data');
       throw error;
     }
   }

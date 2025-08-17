@@ -82,7 +82,7 @@ export async function generateChallenge(walletAddress: string): Promise<AuthServ
       data: authChallenge
     };
   } catch (error) {
-    logger.error('Failed to generate challenge', error);
+    logger.error({ err: error }, 'Failed to generate challenge');
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Challenge generation failed'
@@ -129,7 +129,7 @@ export async function getStoredChallenge(
       data: { challenge, expiresAt }
     };
   } catch (error) {
-    logger.error('Failed to retrieve challenge', error);
+    logger.error({ err: error }, 'Failed to retrieve challenge');
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Challenge retrieval failed'

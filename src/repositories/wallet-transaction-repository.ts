@@ -12,7 +12,10 @@
 
 import { SupabaseClient } from '@supabase/supabase-js';
 import { BaseRepository } from './base-repository';
-import { DiagnosticLogger } from '@/utils/diagnostic-logger';
+import { logger } from '@/lib/logger';
+
+// Create child logger for this repository
+const repoLogger = logger.child({ module: 'wallet-transaction-repository' });
 import type { ITransactionRepository } from '@/services/interfaces';
 import type { WalletTransaction, TransactionFilters, TransactionAction, Protocol } from '@/types/transaction';
 import type { 
@@ -126,20 +129,42 @@ export class WalletTransactionRepository extends BaseRepository implements ITran
 
     if (!data) return [];
 
-    // Log for diagnostics
-    DiagnosticLogger.logDatabaseQuery(
-      'WalletTransactionRepository.findByUser',
-      'get_transactions_paginated',
-      data
-    );
+    // Log query results  
+    repoLogger.debug({ 
+      transactionCount: data.length,
+      userId
+    }, 'Transactions fetched from database');
 
     return data.map(row => {
       const mapped = this.mapToWalletTransaction(row);
-      DiagnosticLogger.logTransformation(
-        'WalletTransactionRepository.mapToWalletTransaction',
-        row,
-        mapped
-      );
+      
+      // Comprehensive logging for transaction categorization debugging
+      repoLogger.debug({
+        txHash: row.tx_hash,
+        // Raw database fields for categorization analysis  
+        rawAction: row.tx_action,
+        rawProtocol: row.tx_protocol,
+        // Asset flow data for categorization debugging
+        assetFlows: {
+          flowCount: Array.isArray(row.asset_flows) ? row.asset_flows.length : 0,
+          flows: Array.isArray(row.asset_flows) ? row.asset_flows.map((flow: any) => ({
+            tokenUnit: flow.token_unit,
+            netChange: flow.net_change,
+            tokenTicker: flow.token_ticker
+          })) : []
+        },
+        // Transaction characteristics for categorization
+        txCharacteristics: {
+          fees: row.fees,
+          netAdaChange: row.net_ada_change,
+          blockHeight: row.block_height,
+          description: row.description
+        },
+        // Mapped result for comparison
+        mappedAction: mapped.tx_action,
+        mappedProtocol: mapped.tx_protocol
+      }, 'Transaction mapped with categorization debug data');
+      
       return mapped;
     });
   }

@@ -96,7 +96,7 @@ export class PriceService {
       this.logger.info(`ADA price updated: $${priceData.usd}`);
       return priceData;
     } catch (error) {
-      this.logger.error('Failed to fetch ADA price', error);
+      this.logger.error({ err: error }, 'Failed to fetch ADA price');
       
       // Return fallback data if API fails
       const fallbackPrice: PriceData = {

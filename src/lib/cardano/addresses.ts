@@ -61,7 +61,7 @@ function convertHexToBech32(hexAddress: HexAddress): Bech32Address | null {
     const address = CardanoWasm.Address.from_bytes(addressBytes);
     return address.to_bech32() as Bech32Address;
   } catch (error) {
-    logger.error('Failed to convert hex to Bech32:', error);
+    logger.error({ err: error }, 'Failed to convert hex to Bech32');
     return null;
   }
 }

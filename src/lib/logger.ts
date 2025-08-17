@@ -1,52 +1,43 @@
 /**
- * Client-safe Logger
+ * Pino-based Logger
  * 
- * Provides consistent logging across client and server with
- * file logging only on server side.
+ * High-performance structured logging for both client and server.
+ * Uses JSON format in production, pretty printing in development.
  */
 
-type LogLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
+import pino from 'pino';
 
-export class Logger {
-  private static instance: Logger;
+const isDevelopment = process.env.NODE_ENV === 'development';
+const isBrowser = typeof window !== 'undefined';
 
-  private constructor() {}
+const config: pino.LoggerOptions = {
+  level: process.env.PINO_LOG_LEVEL || (isDevelopment ? 'debug' : 'info'),
+  
+  // Browser configuration
+  ...(isBrowser && {
+    browser: {
+      asObject: true,
+    },
+  }),
 
-  public static getInstance(): Logger {
-    if (!Logger.instance) {
-      Logger.instance = new Logger();
-    }
-    return Logger.instance;
-  }
+  // Server configuration  
+  ...(!isBrowser && isDevelopment && {
+    // Pretty printing for development only
+    transport: {
+      target: 'pino-pretty',
+      options: {
+        colorize: true,
+        ignore: 'pid,hostname',
+        translateTime: 'yyyy-mm-dd HH:MM:ss'
+      },
+    },
+  }),
 
-  private formatMessage(level: LogLevel, message: string): string {
-    const timestamp = new Date().toISOString();
-    return `[${timestamp}] [${level}] ${message}`;
-  }
+  // Base context
+  base: {
+    env: process.env.NODE_ENV,
+  },
+};
 
-  public debug(message: string): void {
-    if (process.env.NODE_ENV === 'development') {
-      const formattedMessage = this.formatMessage('DEBUG', message);
-      console.log(formattedMessage);
-    }
-  }
-
-  public info(message: string): void {
-    const formattedMessage = this.formatMessage('INFO', message);
-    console.log(formattedMessage);
-  }
-
-  public warn(message: string): void {
-    const formattedMessage = this.formatMessage('WARN', message);
-    console.warn(formattedMessage);
-  }
-
-  public error(message: string, error?: unknown): void {
-    const errorDetails = error instanceof Error ? ` - ${error.message}` : '';
-    const formattedMessage = this.formatMessage('ERROR', `${message}${errorDetails}`);
-    console.error(formattedMessage);
-  }
-}
-
-// Export singleton instance
-export const logger = Logger.getInstance();
+// Export Pino logger directly - this is the standard approach
+export const logger = pino(config);

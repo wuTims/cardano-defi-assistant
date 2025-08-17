@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response, { status: 200 });
 
   } catch (error) {
-    logger.error('Verify endpoint error', error);
+    logger.error({ err: error }, 'Verify endpoint error');
     
     return NextResponse.json(
       { error: 'Internal server error' },

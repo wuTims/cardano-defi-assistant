@@ -117,7 +117,7 @@ export const POST = withAuth(async (request, { walletAddress, userId }) => {
     return NextResponse.json(response);
     
   } catch (error) {
-    logger.error('Error creating sync job:', error);
+    logger.error({ err: error }, 'Error creating sync job');
     const errorMessage = error instanceof Error ? error.message : 'Failed to queue sync';
     
     return NextResponse.json(
@@ -193,7 +193,7 @@ export const GET = withAuth(async (request, { walletAddress, userId }) => {
     });
     
   } catch (error) {
-    logger.error('Error checking sync status:', error);
+    logger.error({ err: error }, 'Error checking sync status');
     return NextResponse.json(
       { error: 'Failed to check sync status' },
       { status: 500 }

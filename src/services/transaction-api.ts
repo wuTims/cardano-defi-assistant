@@ -1,6 +1,8 @@
 import { logger } from '@/lib/logger';
-import { DiagnosticLogger } from '@/utils/diagnostic-logger';
 import { TokenCategory, TransactionAction, Protocol } from '@/types/transaction';
+
+// Create module-level logger once
+const transactionApiLogger = logger.child({ module: 'transaction-api' });
 import type { WalletTransaction, TransactionFilters, WalletAssetFlow, TokenInfo } from '@/types/transaction';
 import type { 
   TransactionPaginatedRow,
@@ -172,24 +174,35 @@ export class TransactionApiService {
       const data: RawTransactionResponse = await response.json();
 
       // Log raw API response
-      DiagnosticLogger.logClientData('transaction-api.fetchTransactions - Raw Response', data);
+      transactionApiLogger.debug({ 
+        responseCount: data.transactions?.length || 0,
+        hasMore: data.hasMore,
+        total: data.total,
+        page: data.page
+      }, 'Raw API response received');
 
       // Transform each transaction with proper error handling
       const transactions = (data.transactions || []).map((row: TransactionPaginatedRow, index: number) => {
         try {
           const transformed = transformTransaction(row);
-          DiagnosticLogger.logTransformation(
-            `transaction-api.transformTransaction[${index}]`,
-            row,
-            transformed
-          );
+          
+          // Log transformation success at trace level
+          transactionApiLogger.trace({ 
+            txIndex: index, 
+            txHash: row.tx_hash 
+          }, 'Transaction transformed successfully');
+          
           return transformed;
         } catch (error) {
-          logger.error(`Failed to transform transaction at index ${index}`, error);
-          DiagnosticLogger.logClientData(
-            `transaction-api.transformTransaction[${index}] - ERROR`,
-            { row, error }
-          );
+          logger.error({ err: error, index }, `Failed to transform transaction at index ${index}`);
+          
+          // Log error details with context
+          transactionApiLogger.error({
+            txIndex: index,
+            txHash: row.tx_hash,
+            error: error instanceof Error ? error.message : error
+          }, 'Transaction transformation failed');
+          
           // Skip invalid transactions
           return null;
         }
@@ -207,7 +220,7 @@ export class TransactionApiService {
         logger.info('Transaction fetch cancelled');
         throw new Error('Request cancelled');
       }
-      logger.error('Failed to fetch transactions', error);
+      logger.error({ err: error }, 'Failed to fetch transactions');
       throw error;
     }
   }

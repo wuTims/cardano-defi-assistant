@@ -19,7 +19,7 @@ export const queryClient = new QueryClient({
     mutations: {
       retry: 0, // Let individual mutations handle their own retry logic
       onError: (error) => {
-        logger.error('Mutation failed', error);
+        logger.error({ err: error }, 'Mutation failed');
       },
     },
   },

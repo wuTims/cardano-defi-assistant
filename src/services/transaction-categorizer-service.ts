@@ -15,6 +15,10 @@ import type { WalletAssetFlow, RawTransaction } from '@/types/transaction';
 import { TransactionAction, Protocol, TokenCategory } from '@/types/transaction';
 import type { ITransactionCategorizer, ICategorizationRule } from '@/services/interfaces';
 import { ProtocolTokenRegistry, detectPotentialQToken } from '@/config/protocol-tokens';
+import { logger } from '@/lib/logger';
+
+// Create child logger for transaction categorization with detailed debugging
+const categorizationLogger = logger.child({ module: 'transaction-categorizer' });
 
 // Default console logger (using built-in Console type)
 class ConsoleLogger {
@@ -459,41 +463,130 @@ export class TransactionCategorizerService implements ITransactionCategorizer {
     tx: RawTransaction,
     flows: readonly WalletAssetFlow[]
   ): TransactionAction {
-    this.logger.debug('Starting transaction categorization', {
+    // Create transaction-specific logger with full context
+    const txLogger = categorizationLogger.child({
       txHash: tx.hash,
-      flowCount: flows.length,
-      assetTypes: flows.map(f => f.token.ticker || f.token.unit.slice(0, 16)),
-      metadata: tx.metadata ? Object.keys(tx.metadata) : [],
-      hasWithdrawals: !!(tx.withdrawals?.length),
-      hasCertificates: !!(tx.certificates?.length)
+      blockHeight: tx.block_height,
+      blockTime: tx.block_time
     });
+
+    // Enhanced categorization debugging with comprehensive transaction analysis
+    txLogger.debug({
+      // Transaction characteristics
+      transactionData: {
+        txHash: tx.hash,
+        blockHeight: tx.block_height,
+        blockTime: tx.block_time,
+        fees: tx.fees,
+        slot: tx.slot
+      },
+      // Asset flow analysis for categorization
+      assetFlowAnalysis: {
+        totalFlows: flows.length,
+        flowsByDirection: {
+          incoming: flows.filter(f => f.netChange > 0).length,
+          outgoing: flows.filter(f => f.netChange < 0).length
+        },
+        assetTypes: flows.map(f => ({
+          unit: f.token.unit,
+          ticker: f.token.ticker,
+          netChange: f.netChange.toString(),
+          amountIn: f.amountIn.toString(),
+          amountOut: f.amountOut.toString(),
+          isNative: f.token.unit !== 'lovelace',
+          isPotentialQToken: f.token.ticker?.toLowerCase().includes('q') || false
+        })),
+        netADAFlow: flows.find(f => f.token.unit === 'lovelace')?.netChange.toString() || '0',
+        uniqueAssetCount: new Set(flows.map(f => f.token.unit)).size
+      },
+      // Transaction features for rule matching
+      categorizationFeatures: {
+        hasMetadata: !!tx.metadata,
+        metadataKeys: tx.metadata ? Object.keys(tx.metadata) : [],
+        hasWithdrawals: !!(tx.withdrawals?.length),
+        withdrawalCount: tx.withdrawals?.length || 0,
+        hasCertificates: !!(tx.certificates?.length),
+        certificateTypes: tx.certificates?.map(c => c.type) || [],
+        hasNativeAssets: flows.some(f => f.token.unit !== 'lovelace'),
+        hasMultipleAssets: new Set(flows.map(f => f.token.unit)).size > 1
+      },
+      // Available rules for matching
+      availableRules: this.rules.map(r => ({
+        name: r.constructor.name,
+        priority: r.priority
+      }))
+    }, 'Starting comprehensive transaction categorization');
 
     // Apply rules in priority order - first match wins
     for (const rule of this.rules) {
+      const ruleLogger = txLogger.child({ 
+        rule: rule.constructor.name, 
+        priority: rule.priority 
+      });
+      
+      ruleLogger.trace('Testing rule against transaction');
+      
       const matched = rule.matches(tx, flows);
       
       if (matched) {
         const action = rule.getAction(tx, flows);
         const protocol = rule.getProtocol();
         
-        this.logger.info('Transaction categorized', {
-          txHash: tx.hash,
-          action,
-          protocol,
-          matchedRule: rule.constructor.name,
-          priority: rule.priority
-        });
+        // Comprehensive logging when rule matches
+        ruleLogger.info({
+          matchResult: {
+            matched: true,
+            action,
+            protocol,
+            rule: rule.constructor.name,
+            priority: rule.priority
+          },
+          // Log why this rule matched (for debugging)
+          matchReason: {
+            ruleType: rule.constructor.name,
+            actionDetermined: action,
+            protocolDetected: protocol
+          }
+        }, 'Rule matched - transaction categorized');
         
         if (action !== TransactionAction.UNKNOWN) {
           return action;
+        } else {
+          ruleLogger.warn({
+            issue: 'RULE_MATCHED_BUT_UNKNOWN_ACTION',
+            rule: rule.constructor.name
+          }, 'Rule matched but returned UNKNOWN action');
         }
+      } else {
+        ruleLogger.trace({
+          matchResult: {
+            matched: false,
+            rule: rule.constructor.name,
+            priority: rule.priority
+          }
+        }, 'Rule did not match transaction');
       }
     }
     
-    this.logger.warn('No rules matched transaction', {
-      txHash: tx.hash,
-      flowCount: flows.length
-    });
+    // No rules matched - this is a categorization gap
+    txLogger.warn({
+      categorizationGap: {
+        issue: 'NO_RULES_MATCHED',
+        txHash: tx.hash,
+        assetFlowSummary: {
+          flowCount: flows.length,
+          hasADA: flows.some(f => f.token.unit === 'lovelace'),
+          hasNativeAssets: flows.some(f => f.token.unit !== 'lovelace'),
+          uniqueAssets: new Set(flows.map(f => f.token.unit)).size
+        },
+        transactionFeatures: {
+          hasMetadata: !!tx.metadata,
+          hasWithdrawals: !!(tx.withdrawals?.length),
+          hasCertificates: !!(tx.certificates?.length)
+        },
+        allRulesTested: this.rules.map(r => r.constructor.name)
+      }
+    }, 'CATEGORIZATION GAP: No rules matched transaction');
     
     return TransactionAction.UNKNOWN;
   }

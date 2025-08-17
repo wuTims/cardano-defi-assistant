@@ -78,7 +78,7 @@ export function useSyncMutation() {
     },
 
     onError: (error) => {
-      logger.error('Sync failed', error);
+      logger.error({ err: error }, 'Sync failed');
 
       if (user?.walletAddress) {
         // Reset sync status on error

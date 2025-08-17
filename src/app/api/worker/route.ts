@@ -40,7 +40,7 @@ export async function POST() {
     
     // Start in background (non-blocking)
     worker.start().catch(error => {
-      logger.error('Worker crashed', error);
+      logger.error({ err: error }, 'Worker crashed');
       worker = null;
     });
     
@@ -49,7 +49,7 @@ export async function POST() {
       message: 'Worker started successfully'
     });
   } catch (error) {
-    logger.error('Failed to start worker', error);
+    logger.error({ err: error }, 'Failed to start worker');
     return NextResponse.json(
       { 
         status: 'error',

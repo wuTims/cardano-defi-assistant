@@ -10,11 +10,19 @@ import { createRepositories } from '@/repositories';
 import { TransactionFilterBuilder } from '@/utils/transaction-filter-builder';
 import { withAuth } from '@/utils/auth-wrapper';
 import { createClient } from '@supabase/supabase-js';
-import { DiagnosticLogger } from '@/utils/diagnostic-logger';
 import { ServiceFactory } from '@/services/service-factory';
 import { logger } from '@/lib/logger';
 
 export const GET = withAuth(async (request, { walletAddress, userId }) => {
+  // Create child logger for this specific request
+  const requestLogger = logger.child({ 
+    module: 'api', 
+    route: '/api/transactions', 
+    method: 'GET',
+    walletAddress,
+    userId 
+  });
+
   try {
     // JWT must have userId - if not, auth service needs fixing
     if (!userId) {
@@ -40,8 +48,7 @@ export const GET = withAuth(async (request, { walletAddress, userId }) => {
     // Check cache first
     const cachedResponse = await cache.get<any>(cacheKey);
     if (cachedResponse) {
-      logger.info(`Cache hit for transactions ${walletAddress.slice(0, 12)}... page ${page}`);
-      DiagnosticLogger.logApiResponse('/api/transactions - CACHE HIT', cachedResponse);
+      requestLogger.debug({ page, cacheKey }, 'Transactions served from cache');
       
       // Serialize with BigInt support
       const jsonString = JSON.stringify(cachedResponse, (_key, value) => 
@@ -120,9 +127,6 @@ export const GET = withAuth(async (request, { walletAddress, userId }) => {
     
     // Cache the response
     await cache.set(cacheKey, response);
-    
-    // Log API response for diagnostics
-    DiagnosticLogger.logApiResponse('/api/transactions', response);
     
     // Serialize with BigInt support
     const jsonString = JSON.stringify(response, (_key, value) => 

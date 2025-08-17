@@ -61,13 +61,13 @@ export const authDatabase = {
         });
 
       if (error) {
-        logger.error('Failed to store challenge', error);
+        logger.error({ err: error }, 'Failed to store challenge');
         return { success: false, error: error.message };
       }
 
       return { success: true };
     } catch (error) {
-      logger.error('Database error storing challenge', error);
+      logger.error({ err: error }, 'Database error storing challenge');
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Database error'
@@ -115,7 +115,7 @@ export const authDatabase = {
         }
       };
     } catch (error) {
-      logger.error('Database error retrieving challenge', error);
+      logger.error({ err: error }, 'Database error retrieving challenge');
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Database error'
@@ -144,13 +144,13 @@ export const authDatabase = {
         .eq('used', false);
 
       if (error) {
-        logger.error('Failed to mark challenge as used', error);
+        logger.error({ err: error }, 'Failed to mark challenge as used');
         return { success: false, error: error.message };
       }
 
       return { success: true };
     } catch (error) {
-      logger.error('Database error marking challenge as used', error);
+      logger.error({ err: error }, 'Database error marking challenge as used');
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Database error'
@@ -177,7 +177,7 @@ export const authDatabase = {
       const { data, error } = result as { data: string | null; error: PostgrestError | null };
 
       if (error) {
-        logger.error('Failed to upsert user', error);
+        logger.error({ err: error }, 'Failed to upsert user');
         return { success: false, error: error.message };
       }
 
@@ -186,7 +186,7 @@ export const authDatabase = {
         data: { id: data || '' }
       };
     } catch (error) {
-      logger.error('Database error upserting user', error);
+      logger.error({ err: error }, 'Database error upserting user');
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Database error'
@@ -223,7 +223,7 @@ export const authDatabase = {
         }
       };
     } catch (error) {
-      logger.error('Database error getting user', error);
+      logger.error({ err: error }, 'Database error getting user');
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Database error'

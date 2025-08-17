@@ -152,7 +152,7 @@ export async function verifyWalletSignature(
 
     } catch (error) {
       if (error instanceof Error) {
-        logger.error('COSE signature parsing failed:', error);
+        logger.error({ err: error }, 'COSE signature parsing failed');
         return { isValid: false, error: 'COSE signature parsing failed' };
       }
       // For non-Error throwables, bubble up to the outer catch so we return a generic failure
@@ -174,7 +174,7 @@ export async function verifyWalletSignature(
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Signature verification failed';
-    logger.error('Wallet signature verification failed', error);
+    logger.error({ err: error }, 'Wallet signature verification failed');
     return { isValid: false, error: errorMessage };
   }
 }
@@ -274,7 +274,7 @@ export async function verifyAddressFromPublicKey(
     
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Address verification failed';
-    logger.error('Address verification from public key failed', error);
+    logger.error({ err: error }, 'Address verification from public key failed');
     return { isValid: false, error: errorMessage };
   }
 }

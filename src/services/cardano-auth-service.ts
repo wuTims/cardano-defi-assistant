@@ -127,7 +127,7 @@ export class CardanoAuthService {
         }
       };
     } catch (error) {
-      this.logger.error('Authentication failed', error);
+      this.logger.error({ err: error }, 'Authentication failed');
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Authentication failed'
@@ -205,7 +205,7 @@ export class CardanoAuthService {
         }
       };
     } catch (error) {
-      this.logger.error('Token refresh failed', error);
+      this.logger.error({ err: error }, 'Token refresh failed');
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Token refresh failed'

@@ -7,10 +7,20 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { DiagnosticLogger } from '@/utils/diagnostic-logger';
+import { logger } from '@/lib/logger';
 import { withAuth } from '@/utils/auth-wrapper';
 
 export const GET = withAuth(async (request, { walletAddress, userId }) => {
+  // Create child logger for debug endpoint with enhanced categorization logging
+  const debugLogger = logger.child({ 
+    module: 'api', 
+    route: '/api/debug/transactions', 
+    method: 'GET',
+    walletAddress,
+    userId,
+    debugMode: true
+  });
+
   try {
     // Only allow in development
     if (process.env.NODE_ENV !== 'development') {
@@ -91,27 +101,69 @@ export const GET = withAuth(async (request, { walletAddress, userId }) => {
       databaseSchema: columns || null
     };
 
-    // Log to diagnostic file
-    DiagnosticLogger.logClientData('DEBUG ENDPOINT - Complete Analysis', analysis);
-
-    // Write summary
-    const issues: string[] = [];
-    
-    if (rawTransactions?.[0]) {
-      if (!rawTransactions[0].tx_hash) {
-        issues.push('Missing tx_hash field in database');
+    // Enhanced categorization analysis for debugging
+    const categorizationAnalysis = {
+      transactionCategorization: rawTransactions?.map(tx => ({
+        txHash: tx.tx_hash,
+        currentCategory: tx.category || 'UNCATEGORIZED',
+        currentAction: tx.tx_action || 'UNKNOWN',
+        currentProtocol: tx.protocol || 'UNKNOWN',
+        // Asset flow patterns for categorization debugging
+        assetFlowPattern: {
+          inputAssetTypes: tx.inputs_json?.map((i: any) => i.unit === 'lovelace' ? 'ADA' : 'NATIVE') || [],
+          outputAssetTypes: tx.outputs_json?.map((o: any) => o.unit === 'lovelace' ? 'ADA' : 'NATIVE') || [],
+          netADAChange: (tx.outputs_json?.find((o: any) => o.unit === 'lovelace')?.quantity || 0) - 
+                       (tx.inputs_json?.find((i: any) => i.unit === 'lovelace')?.quantity || 0),
+          uniqueAssetUnits: new Set([
+            ...(tx.inputs_json?.map((i: any) => i.unit) || []),
+            ...(tx.outputs_json?.map((o: any) => o.unit) || [])
+          ]).size
+        },
+        // Categorization indicators
+        categorizationIndicators: {
+          hasMetadata: !!tx.metadata,
+          hasCertificates: !!tx.certificates_json?.length,
+          hasWithdrawals: !!tx.withdrawals_json?.length,
+          hasMultipleAssets: (tx.inputs_json?.length || 0) + (tx.outputs_json?.length || 0) > 2,
+          feeToValueRatio: tx.fees && tx.value ? (Number(tx.fees) / Number(tx.value)) : null
+        },
+        // Potential categorization gaps
+        potentialIssues: [
+          ...(tx.category === 'UNKNOWN' ? ['Transaction not categorized'] : []),
+          ...(tx.tx_action === 'UNKNOWN' ? ['Action not identified'] : []),
+          ...(tx.protocol === 'UNKNOWN' ? ['Protocol not identified'] : []),
+          ...(!tx.inputs_json?.length ? ['Missing input data'] : []),
+          ...(!tx.outputs_json?.length ? ['Missing output data'] : [])
+        ]
+      })) || [],
+      
+      // Summary statistics for categorization health
+      categorizationSummary: {
+        totalTransactions: rawTransactions?.length || 0,
+        uncategorizedCount: rawTransactions?.filter(tx => !tx.category || tx.category === 'UNKNOWN').length || 0,
+        unknownActionCount: rawTransactions?.filter(tx => !tx.tx_action || tx.tx_action === 'UNKNOWN').length || 0,
+        unknownProtocolCount: rawTransactions?.filter(tx => !tx.protocol || tx.protocol === 'UNKNOWN').length || 0,
+        categoriesSeen: new Set(rawTransactions?.map(tx => tx.category).filter(Boolean)),
+        actionsSeen: new Set(rawTransactions?.map(tx => tx.tx_action).filter(Boolean)),
+        protocolsSeen: new Set(rawTransactions?.map(tx => tx.protocol).filter(Boolean))
       }
-      if (!rawTransactions[0].tx_timestamp) {
-        issues.push('Missing tx_timestamp field in database');
-      }
-    } else {
-      issues.push('No transactions found for user');
-    }
+    };
 
-    DiagnosticLogger.writeSummary(issues);
+    // Comprehensive debug logging for categorization analysis
+    debugLogger.info({
+      analysis,
+      categorizationAnalysis,
+      debugMode: 'TRANSACTION_CATEGORIZATION_ANALYSIS'
+    }, 'Complete transaction categorization debug analysis');
 
-    // Return analysis as JSON
-    return NextResponse.json(analysis, {
+    // Enhanced analysis with categorization focus
+    const enhancedAnalysis = {
+      ...analysis,
+      categorizationAnalysis
+    };
+
+    // Return enhanced analysis as JSON
+    return NextResponse.json(enhancedAnalysis, {
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-store'

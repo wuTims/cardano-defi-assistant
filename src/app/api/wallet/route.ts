@@ -13,18 +13,23 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { withAuth } from '@/utils/auth-wrapper';
 import { logger } from '@/lib/logger';
-import { DiagnosticLogger } from '@/utils/diagnostic-logger';
+
 import { ServiceFactory } from '@/services/service-factory';
 import { createWalletRepository } from '@/repositories';
 import type { WalletData } from '@/types/wallet';
 
 export const GET = withAuth(async (request, { walletAddress, userId }) => {
+  // Create child logger for this specific request
+  const requestLogger = logger.child({ 
+    module: 'api', 
+    route: '/api/wallet', 
+    method: 'GET',
+    walletAddress,
+    userId 
+  });
+
   try {
-    DiagnosticLogger.logClientData('wallet/route.ts - START', {
-      walletAddress,
-      userId,
-      timestamp: new Date().toISOString()
-    });
+    requestLogger.debug('Wallet API request started');
 
     // Check cache first, but only use if wallet was recently synced
     const cache = ServiceFactory.getWalletCache();
@@ -36,16 +41,15 @@ export const GET = withAuth(async (request, { walletAddress, userId }) => {
       const syncAge = Date.now() - cachedData.lastSyncedAt.getTime();
       
       if (syncAge < 5 * 60 * 1000) {
-        logger.info(`Cache hit for wallet ${walletAddress.slice(0, 12)}... (synced ${Math.round(syncAge / 1000)}s ago)`);
-        DiagnosticLogger.logApiResponse('/api/wallet - CACHE HIT', cachedData);
+        requestLogger.debug({ syncAge: Math.round(syncAge / 1000) }, 'Wallet data served from cache');
         return NextResponse.json(cachedData);
       } else {
-        logger.info(`Cache invalidated for wallet ${walletAddress.slice(0, 12)}... (stale sync from ${Math.round(syncAge / 60000)}min ago)`);
+        requestLogger.debug({ syncAge: Math.round(syncAge / 60000) }, 'Cache invalidated - stale sync');
         // Clear stale cache
         await cache.delete(cacheKey);
       }
     } else if (cachedData) {
-      logger.info(`Cache invalidated for wallet ${walletAddress.slice(0, 12)}... (never synced)`);
+      requestLogger.debug('Cache invalidated - never synced');
       // Clear cache for never-synced wallets
       await cache.delete(cacheKey);
     }
@@ -58,23 +62,14 @@ export const GET = withAuth(async (request, { walletAddress, userId }) => {
     
     const walletRepo = createWalletRepository(supabase);
     
-    DiagnosticLogger.logClientData('wallet/route.ts - Fetching wallet data', {
-      query: 'findWithSyncStatus',
-      params: { walletAddress, userId }
-    });
+    requestLogger.debug('Fetching wallet data from database');
 
     // Use repository with proper typing
     const walletRecord = await walletRepo.findWithSyncStatus(walletAddress, userId);
 
-    DiagnosticLogger.logDatabaseQuery(
-      'wallet/route.ts - repository query result',
-      'findWithSyncStatus',
-      { walletRecord }
-    );
-    
     // If no wallet record exists, return empty wallet data for new users
     if (!walletRecord) {
-      logger.info(`No wallet data found for ${walletAddress.slice(0, 12)}... (new user)`);
+      requestLogger.debug('No wallet record found - new user');
       const emptyWalletResponse: WalletData = {
         address: walletAddress,
         balance: { lovelace: '0', assets: [] },
@@ -86,7 +81,6 @@ export const GET = withAuth(async (request, { walletAddress, userId }) => {
       // Cache the empty response for a short time
       await cache.set(cacheKey, emptyWalletResponse, 60); // 1 minute TTL for empty wallets
       
-      DiagnosticLogger.logApiResponse('/api/wallet - empty wallet', emptyWalletResponse);
       return NextResponse.json(emptyWalletResponse);
     }
     
@@ -124,14 +118,10 @@ export const GET = withAuth(async (request, { walletAddress, userId }) => {
       
     await cache.set(cacheKey, walletData, cacheTTL);
     
-    logger.info(`Wallet data fetched for ${walletAddress.slice(0, 12)}... (sync status: ${walletRecord.sync_status}, cached for ${cacheTTL}s)`);
-    
-    DiagnosticLogger.logApiResponse('/api/wallet - SUCCESS', walletData);
     return NextResponse.json(walletData);
     
   } catch (error) {
-    logger.error('Error in wallet fetch endpoint', error);
-    DiagnosticLogger.logClientData('wallet/route.ts - EXCEPTION', error, error);
+    requestLogger.error({ error: error instanceof Error ? error.message : error }, 'Wallet API error');
     return NextResponse.json(
       { error: 'Internal server error', details: error },
       { status: 500 }

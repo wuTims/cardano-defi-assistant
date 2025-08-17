@@ -41,7 +41,7 @@ export const WalletOverview: React.FC = () => {
         const changeData = await priceService.getPriceChangeDisplay();
         setPriceChange(changeData);
       } catch (error) {
-        logger.error('Failed to fetch price data', error);
+        logger.error({ err: error }, 'Failed to fetch price data');
         setUsdValue('$--');
         setPriceChange(null);
       } finally {

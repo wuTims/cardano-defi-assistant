@@ -61,7 +61,7 @@ export class JWTManager {
 
       logger.info('Private JWK initialized for Supabase JWT signing');
     } catch (error) {
-      logger.error('Failed to initialize private JWK', error);
+      logger.error({ err: error }, 'Failed to initialize private JWK');
       throw new ValidationError(`JWK initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -89,7 +89,7 @@ export class JWTManager {
       
       logger.info('Public key extracted from private JWK for secure verification');
     } catch (error) {
-      logger.error('Failed to extract public key from JWK', error);
+      logger.error({ err: error }, 'Failed to extract public key from JWK');
       throw new ValidationError(`Public key extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -201,7 +201,7 @@ export class JWTManager {
         }
       };
     } catch (error) {
-      logger.error('Token verification failed', error);
+      logger.error({ err: error }, 'Token verification failed');
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Token verification failed'
