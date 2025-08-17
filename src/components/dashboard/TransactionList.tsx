@@ -14,6 +14,10 @@ export function TransactionList() {
     loadMore,
     isLoadingMore 
   } = useTransactionList();
+  console.log(transactions);
+  console.log(isLoading);
+  console.log(hasMore);
+  console.log(isLoadingMore);
   
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -29,6 +33,8 @@ export function TransactionList() {
   useEffect(() => {
     const items = virtualizer.getVirtualItems();
     const lastItem = items[items.length - 1];
+    console.log(lastItem);
+    console.log(items);
     
     if (!lastItem) return;
     
@@ -70,13 +76,13 @@ export function TransactionList() {
       </div>
     );
   }
-  
+
   // Virtual scroll list
   return (
     <div 
       ref={parentRef}
-      className="h-full overflow-auto"
-      style={{ contain: 'strict' }}
+      className="flex-1 overflow-auto"
+      style={{ height: '100%', position: 'relative' }}
     >
       <div
         style={{

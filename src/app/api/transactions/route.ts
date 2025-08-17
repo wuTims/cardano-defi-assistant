@@ -76,7 +76,7 @@ export const GET = withAuth(async (request, { walletAddress, userId }) => {
 
     // Transform domain objects to DTOs with correct field names
     const transactionDTOs = paginatedTransactions.map(tx => ({
-      id: tx.id,
+      transaction_id: tx.id,  // Match database field name
       wallet_address: tx.walletAddress,
       tx_hash: tx.txHash,
       tx_timestamp: tx.tx_timestamp.toISOString(),

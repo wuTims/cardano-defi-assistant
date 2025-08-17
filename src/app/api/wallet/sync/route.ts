@@ -76,7 +76,7 @@ export const POST = withAuth(async (request, { walletAddress, userId }) => {
     
     // Determine sync type and starting block
     const lastSyncedBlock = wallet?.synced_block_height || 0;
-    const syncType = lastSyncedBlock > 0 ? 'incremental' : 'full_sync';
+    const syncType = lastSyncedBlock > 0 ? 'incremental_sync' : 'full_sync';
     
     logger.info(`Creating ${syncType} sync job from block ${lastSyncedBlock} for wallet ${walletAddress.slice(0, 12)}...`);
     

@@ -175,7 +175,7 @@ export function WalletDashboard() {
           <TransactionFilters />
           
           {/* Transaction List */}
-          <Card className="p-6">
+          <Card className="p-6 h-[600px] flex flex-col">
             <TransactionList />
           </Card>
         </motion.div>

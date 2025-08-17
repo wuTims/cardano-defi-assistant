@@ -109,6 +109,7 @@ export function useTransactionList() {
 
   const handleLoadMore = () => {
     if (hasNextPage && !isFetchingNextPage) {
+      console.log('Loading more transactions...');
       fetchNextPage();
     }
   };

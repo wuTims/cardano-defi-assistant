@@ -23,7 +23,7 @@ export interface QueueJob<T = any> {
 export interface WalletSyncJobData {
   walletAddress: string;
   userId: string;
-  syncType: 'wallet_sync' | 'transaction_sync' | 'full_sync';
+  syncType: 'wallet_sync' | 'transaction_sync' | 'full_sync' | 'incremental_sync';
   fromBlock?: number;
   toBlock?: number;
 }
