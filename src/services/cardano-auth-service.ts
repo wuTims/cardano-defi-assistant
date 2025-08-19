@@ -8,10 +8,9 @@
  * - Wallet signature verification
  */
 
-import { authDatabase } from '@/lib/supabase/server';
 import { AuthenticationError, ValidationError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
-import { generateChallenge, getStoredChallenge, markChallengeAsUsed } from '@/lib/auth/challenge';
+import { generateChallenge, getStoredChallenge, markChallengeAsUsed, upsertUser, getUserByWallet } from '@/lib/auth/challenge';
 import { jwtManager } from '@/lib/auth/jwt';
 import { verifyWalletSignature } from '@/lib/auth/wallet-verification';
 import type {
@@ -103,8 +102,8 @@ export class CardanoAuthService {
         this.logger.warn(`Failed to mark challenge as used: ${markUsedResult.error}`);
       }
 
-      // 4. Upsert user in app_users table
-      const userResult = await authDatabase.upsertUser(bech32Address, walletType);
+      // 4. Upsert user in users table
+      const userResult = await upsertUser(bech32Address, walletType);
       if (!userResult.success || !userResult.data) {
         throw new Error(`Failed to create user: ${userResult.error}`);
       }
@@ -180,7 +179,7 @@ export class CardanoAuthService {
       }
 
       // Get current user data from database (source of truth)
-      const userResult = await authDatabase.getUserByWallet(walletAddress);
+      const userResult = await getUserByWallet(walletAddress);
       if (!userResult.success || !userResult.data) {
         throw new AuthenticationError('User not found - please re-authenticate');
       }

@@ -6,7 +6,8 @@
  */
 
 import { randomBytes } from 'crypto';
-import { authDatabase } from '@/lib/supabase/server';
+import { ServiceFactory } from '@/services/service-factory';
+import { prisma } from '@/lib/prisma';
 import { ValidationError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
 import { config } from '@/lib/config';
@@ -57,16 +58,13 @@ export async function generateChallenge(walletAddress: string): Promise<AuthServ
     const expiresAt = new Date(Date.now() + config.get('auth').challengeTTL * 1000);
 
     // Store challenge in database with exact string
-    const storeResult = await authDatabase.storeChallenge(
+    const authChallengeRepo = ServiceFactory.getAuthChallengeRepository();
+    await authChallengeRepo.storeChallenge(
       walletAddress,
       nonce,
       challenge,
       expiresAt
     );
-
-    if (!storeResult.success) {
-      throw new Error(`Failed to store challenge: ${storeResult.error}`);
-    }
 
     const authChallenge: AuthChallenge = {
       nonce,
@@ -91,6 +89,82 @@ export async function generateChallenge(walletAddress: string): Promise<AuthServ
 }
 
 /**
+ * Create or get user by wallet address
+ * Replaces the old upsert_app_user RPC function
+ */
+export async function upsertUser(
+  walletAddress: string,
+  walletType?: string
+): Promise<{ success: boolean; data?: { id: string }; error?: string }> {
+  try {
+    const user = await prisma.user.upsert({
+      where: { walletAddress },
+      update: {
+        walletType,
+        lastLoginAt: new Date()
+      },
+      create: {
+        walletAddress,
+        walletType
+      },
+      select: { id: true }
+    });
+
+    return {
+      success: true,
+      data: { id: user.id }
+    };
+  } catch (error) {
+    logger.error({ err: error, walletAddress }, 'Failed to upsert user');
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'User operation failed'
+    };
+  }
+}
+
+/**
+ * Get user by wallet address
+ * Replaces the old app_users table query
+ */
+export async function getUserByWallet(
+  walletAddress: string
+): Promise<{ success: boolean; data?: { id: string; walletType?: string; lastLoginAt: Date | null }; error?: string }> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { walletAddress },
+      select: {
+        id: true,
+        walletType: true,
+        lastLoginAt: true
+      }
+    });
+
+    if (!user) {
+      return {
+        success: false,
+        error: 'User not found'
+      };
+    }
+
+    return {
+      success: true,
+      data: {
+        id: user.id,
+        walletType: user.walletType || undefined,
+        lastLoginAt: user.lastLoginAt
+      }
+    };
+  } catch (error) {
+    logger.error({ err: error, walletAddress }, 'Failed to get user by wallet');
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Database error'
+    };
+  }
+}
+
+/**
  * Retrieve and validate stored challenge
  * 
  * Fetches challenge from database and validates it hasn't expired.
@@ -105,28 +179,19 @@ export async function getStoredChallenge(
   nonce: string
 ): Promise<AuthServiceResponse<{ challenge: string; expiresAt: Date }>> {
   try {
-    const challengeResult = await authDatabase.getChallenge(walletAddress, nonce);
+    const authChallengeRepo = ServiceFactory.getAuthChallengeRepository();
+    const challengeData = await authChallengeRepo.getChallenge(walletAddress, nonce);
     
-    if (!challengeResult.success || !challengeResult.data) {
+    if (!challengeData) {
       return {
         success: false,
-        error: challengeResult.error || 'Invalid or expired challenge'
-      };
-    }
-
-    const { challenge, expiresAt } = challengeResult.data;
-
-    // Verify challenge hasn't expired
-    if (expiresAt < new Date()) {
-      return {
-        success: false,
-        error: 'Challenge expired'
+        error: 'Invalid or expired challenge'
       };
     }
 
     return {
       success: true,
-      data: { challenge, expiresAt }
+      data: challengeData
     };
   } catch (error) {
     logger.error({ err: error }, 'Failed to retrieve challenge');
@@ -148,11 +213,19 @@ export async function markChallengeAsUsed(
   walletAddress: string, 
   nonce: string
 ): Promise<{ success: boolean; error?: string }> {
-  const markUsedResult = await authDatabase.markChallengeUsed(walletAddress, nonce);
-  
-  if (!markUsedResult.success) {
-    logger.warn(`Failed to mark challenge as used: ${markUsedResult.error}`);
+  try {
+    const authChallengeRepo = ServiceFactory.getAuthChallengeRepository();
+    const success = await authChallengeRepo.markChallengeUsed(walletAddress, nonce);
+    
+    if (!success) {
+      logger.warn(`Failed to mark challenge as used for wallet: ${walletAddress}`);
+      return { success: false, error: 'Challenge not found or already used' };
+    }
+    
+    return { success: true };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to mark challenge as used';
+    logger.warn(`Failed to mark challenge as used: ${errorMessage}`);
+    return { success: false, error: errorMessage };
   }
-  
-  return markUsedResult;
 }

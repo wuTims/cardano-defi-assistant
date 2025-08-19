@@ -17,12 +17,14 @@ import { SupabaseQueueService } from './queue/supabase-queue-service';
 import { PrismaTransactionRepository } from '@/repositories/prisma-transaction-repository';
 import { PrismaQueueRepository } from '@/repositories/prisma-queue-repository';
 import { PrismaWalletRepository } from '@/repositories/prisma-wallet-repository';
+import { PrismaAuthChallengeRepository } from '@/repositories/prisma-auth-challenge-repository';
 import { prisma } from '@/lib/prisma';
 import type { ICacheService } from './interfaces/cache-service';
 import type { IQueueService } from './interfaces/queue-service';
 import type { ITransactionRepository } from '@/repositories/interfaces/transaction-repository';
 import type { IQueueRepository } from '@/repositories/interfaces/queue-repository';
 import type { IWalletRepository } from '@/repositories/interfaces/wallet-repository';
+import type { IAuthChallengeRepository } from '@/repositories/interfaces/auth-challenge-repository';
 import { logger } from '@/lib/logger';
 
 /**
@@ -60,6 +62,7 @@ export class ServiceFactory {
     queueRepository?: IQueueRepository;
     transactionRepository?: ITransactionRepository;
     walletRepository?: IWalletRepository;
+    authChallengeRepository?: IAuthChallengeRepository;
     caches: Map<string, ICacheService>;
   } = {
     caches: new Map()
@@ -165,6 +168,19 @@ export class ServiceFactory {
   }
 
   /**
+   * Get auth challenge repository instance
+   * 
+   * @returns IAuthChallengeRepository implementation
+   */
+  static getAuthChallengeRepository(): IAuthChallengeRepository {
+    if (!this.instances.authChallengeRepository) {
+      logger.info('Initializing PrismaAuthChallengeRepository singleton');
+      this.instances.authChallengeRepository = new PrismaAuthChallengeRepository(prisma);
+    }
+    return this.instances.authChallengeRepository;
+  }
+
+  /**
    * Clear all service instances (useful for testing)
    */
   static clearInstances(): void {
@@ -172,6 +188,7 @@ export class ServiceFactory {
     this.instances.queueRepository = undefined;
     this.instances.transactionRepository = undefined;
     this.instances.walletRepository = undefined;
+    this.instances.authChallengeRepository = undefined;
     this.instances.caches.clear();
     logger.info('Cleared all service instances');
   }
