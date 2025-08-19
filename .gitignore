@@ -76,7 +76,7 @@ ehthumbs_vista.db
 # Misc
 .DS_Store
 
-docs/
+
 test-results/
 coverage/
 playwright-report/
@@ -84,3 +84,4 @@ supabase/.env
 .vercel/
 .next/
 local-testing/
+/src/generated/prisma

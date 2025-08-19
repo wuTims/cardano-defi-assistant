@@ -1,0 +1,58 @@
+# Railway Configuration
+# Deploy backend services with Redis and workers
+
+[build]
+builder = "nixpacks"
+buildCommand = "npm ci && npm run build"
+
+[deploy]
+startCommand = "npm run start:railway"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "always"
+restartPolicyMaxRetries = 3
+
+# Services configuration
+[[services]]
+name = "api"
+port = 3001
+internalPort = 3001
+protocol = "tcp"
+
+[[services]]
+name = "worker"
+# Workers don't expose ports
+# They connect to Redis and process jobs
+
+# Environment variables (set in Railway dashboard)
+[variables]
+NODE_ENV = "production"
+PLATFORM = "railway"
+
+# Database (Supabase)
+DATABASE_URL = "${DATABASE_URL}"
+DIRECT_URL = "${DIRECT_URL}"
+
+# Redis (Railway Redis plugin)
+REDIS_HOST = "${REDIS_HOST}"
+REDIS_PORT = "${REDIS_PORT}"
+REDIS_PASSWORD = "${REDIS_PASSWORD}"
+
+# Blockfrost API
+BLOCKFROST_KEY = "${BLOCKFROST_KEY}"
+
+# Auth
+JWT_SECRET = "${JWT_SECRET}"
+
+# Feature flags
+USE_PRISMA = "true"
+USE_BULLMQ = "true"
+ENABLE_PARALLEL_FETCH = "true"
+
+# Performance settings
+WORKER_CONCURRENCY = "5"
+MAX_BATCH_SIZE = "10"
+
+# Monitoring
+LOG_LEVEL = "info"
+ENABLE_METRICS = "true"

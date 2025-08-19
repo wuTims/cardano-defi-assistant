@@ -35,7 +35,7 @@ export class SyncWorker {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
     
-    // Initialize repositories with service role client
+    // Initialize repositories with service role client (using OLD system for now)
     this.repos = createRepositories(this.supabase);
     
     // Initialize parser with its dependencies

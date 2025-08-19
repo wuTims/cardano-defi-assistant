@@ -12,10 +12,10 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { withAuth } from '@/utils/auth-wrapper';
 import { logger } from '@/lib/logger';
 import { ServiceFactory } from '@/services/service-factory';
+import { serialize } from '@/lib/prisma';
 import type { WalletSyncJobData } from '@/services/interfaces/queue-service';
 
 interface SyncResponse {
@@ -61,21 +61,12 @@ export const POST = withAuth(async (request, { walletAddress, userId }) => {
       return NextResponse.json(response);
     }
     
-    // Get last sync info from wallets table
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-    
-    const { data: wallet } = await supabase
-      .from('wallets')
-      .select('synced_block_height, last_synced_at')
-      .eq('wallet_address', walletAddress)
-      .eq('user_id', userId)
-      .single();
+    // Get last sync info from wallet repository
+    const walletRepo = ServiceFactory.getWalletRepository();
+    const wallet = await walletRepo.findByAddressAndUser(walletAddress, userId);
     
     // Determine sync type and starting block
-    const lastSyncedBlock = wallet?.synced_block_height || 0;
+    const lastSyncedBlock = wallet?.syncedBlockHeight || 0;
     const syncType = lastSyncedBlock > 0 ? 'incremental_sync' : 'full_sync';
     
     logger.info(`Creating ${syncType} sync job from block ${lastSyncedBlock} for wallet ${walletAddress.slice(0, 12)}...`);

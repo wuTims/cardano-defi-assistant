@@ -6,11 +6,10 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createRepositories } from '@/repositories';
 import { TransactionFilterBuilder } from '@/utils/transaction-filter-builder';
 import { withAuth } from '@/utils/auth-wrapper';
-import { createClient } from '@supabase/supabase-js';
 import { ServiceFactory } from '@/services/service-factory';
+import { prisma, serialize } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 
 export const GET = withAuth(async (request, { walletAddress, userId }) => {
@@ -50,92 +49,74 @@ export const GET = withAuth(async (request, { walletAddress, userId }) => {
     if (cachedResponse) {
       requestLogger.debug({ page, cacheKey }, 'Transactions served from cache');
       
-      // Serialize with BigInt support
-      const jsonString = JSON.stringify(cachedResponse, (_key, value) => 
-        typeof value === 'bigint' ? value.toString() : value
-      );
-      
-      return new NextResponse(jsonString, {
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return NextResponse.json(serialize(cachedResponse));
     }
 
-    // Create repository with service role client
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { persistSession: false, autoRefreshToken: false } }
-    );
-    const repos = createRepositories(supabase);
-    const transactions = await repos.transaction.findByUser(userId, filters);
+    // Get repository from ServiceFactory
+    const transactionRepo = ServiceFactory.getTransactionRepository();
+    const transactions = await transactionRepo.findByUser(userId, filters);
 
     // Apply pagination (simple slice for now, could be done in DB query)
     const startIndex = page * pageSize;
     const endIndex = startIndex + pageSize;
     const paginatedTransactions = transactions.slice(startIndex, endIndex);
 
-    // Get sync status from wallets table
-    const { data: syncStatus } = await supabase
-      .from('wallets')
-      .select('last_synced_at, synced_block_height')
-      .eq('wallet_address', walletAddress)
-      .single();
+    // Get sync status from wallets table using Prisma
+    const wallet = await prisma.wallet.findFirst({
+      where: { walletAddress },
+      select: { 
+        lastSyncedAt: true, 
+        syncedBlockHeight: true 
+      }
+    });
 
     // Transform domain objects to DTOs with correct field names
     const transactionDTOs = paginatedTransactions.map(tx => ({
       transaction_id: tx.id,  // Match database field name
       wallet_address: tx.walletAddress,
       tx_hash: tx.txHash,
-      tx_timestamp: tx.tx_timestamp.toISOString(),
-      tx_action: tx.tx_action,
-      tx_protocol: tx.tx_protocol,
+      tx_timestamp: tx.txTimestamp.toISOString(),
+      tx_action: tx.txAction,
+      tx_protocol: tx.txProtocol,
       description: tx.description,
-      net_ada_change: tx.netADAChange.toString(),
+      net_ada_change: tx.netAdaChange.toString(),
       fees: tx.fees.toString(),
       block_height: tx.blockHeight,
       asset_flows: tx.assetFlows.map(flow => ({
-        token_unit: flow.token.unit,
+        token_unit: flow.tokenUnit,
         net_change: flow.netChange.toString(),
-        amount_in: flow.amountIn.toString(),
-        amount_out: flow.amountOut.toString(),
-        token: {
+        in_flow: flow.inFlow.toString(),
+        out_flow: flow.outFlow.toString(),
+        token: flow.token ? {
           unit: flow.token.unit,
           policy_id: flow.token.policyId,
           asset_name: flow.token.assetName,
           name: flow.token.name,
           ticker: flow.token.ticker,
           decimals: flow.token.decimals,
-          category: flow.token.category,
-          logo: flow.token.logo,
-          metadata: flow.token.metadata
-        }
+          category: flow.token.category
+        } : null
       }))
     }));
 
-    // Use custom replacer to handle BigInt serialization
+    // Build response
     const response = {
       transactions: transactionDTOs,
       total: transactions.length,
       page,
       pageSize,
       hasMore: endIndex < transactions.length,
-      syncStatus: syncStatus ? {
-        lastSyncedAt: syncStatus.last_synced_at,
-        lastSyncedBlock: syncStatus.synced_block_height
+      syncStatus: wallet ? {
+        lastSyncedAt: wallet.lastSyncedAt,
+        lastSyncedBlock: wallet.syncedBlockHeight
       } : null
     };
     
     // Cache the response
     await cache.set(cacheKey, response);
     
-    // Serialize with BigInt support
-    const jsonString = JSON.stringify(response, (_key, value) => 
-      typeof value === 'bigint' ? value.toString() : value
-    );
-    
-    return new NextResponse(jsonString, {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    // Use centralized serialization
+    return NextResponse.json(serialize(response));
 
   } catch (error) {
     console.error('Error fetching transactions:', error);

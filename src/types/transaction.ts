@@ -80,8 +80,8 @@ export type WalletTransaction = {
  */
 export type WalletAssetFlow = {
   readonly token: TokenInfo;
-  readonly amountIn: bigint;   // What came into wallet
-  readonly amountOut: bigint;  // What left wallet
+  readonly inFlow: bigint;   // What came into wallet
+  readonly outFlow: bigint;  // What left wallet
   readonly netChange: bigint;  // Positive = gained, negative = lost
 };
 

@@ -1,15 +1,28 @@
 /**
  * Service Factory
  * 
- * Provides singleton instances of cache and queue services.
- * Uses lazy initialization to avoid startup errors.
+ * Provides singleton instances of services and repositories.
+ * Uses feature flags to switch between implementations.
  * Configures different cache instances for different data types.
+ * 
+ * Design Principles:
+ * - YAGNI: Only creates what's needed, when it's needed
+ * - SOLID: Depends on interfaces, single responsibility per method
+ * - DRY: Singleton pattern prevents duplicate instances
+ * - Easy Swapping: Feature flags and interfaces enable runtime switching
  */
 
 import { InMemoryCache } from './cache/in-memory-cache';
 import { SupabaseQueueService } from './queue/supabase-queue-service';
+import { PrismaTransactionRepository } from '@/repositories/prisma-transaction-repository';
+import { PrismaQueueRepository } from '@/repositories/prisma-queue-repository';
+import { PrismaWalletRepository } from '@/repositories/prisma-wallet-repository';
+import { prisma } from '@/lib/prisma';
 import type { ICacheService } from './interfaces/cache-service';
 import type { IQueueService } from './interfaces/queue-service';
+import type { ITransactionRepository } from '@/repositories/interfaces/transaction-repository';
+import type { IQueueRepository } from '@/repositories/interfaces/queue-repository';
+import type { IWalletRepository } from '@/repositories/interfaces/wallet-repository';
 import { logger } from '@/lib/logger';
 
 /**
@@ -44,6 +57,9 @@ const CACHE_CONFIGS = {
 export class ServiceFactory {
   private static instances: {
     queue?: IQueueService;
+    queueRepository?: IQueueRepository;
+    transactionRepository?: ITransactionRepository;
+    walletRepository?: IWalletRepository;
     caches: Map<string, ICacheService>;
   } = {
     caches: new Map()
@@ -101,10 +117,61 @@ export class ServiceFactory {
   }
 
   /**
+   * Get transaction repository instance
+   * 
+   * Phase 1: Using PrismaTransactionRepository
+   * Phase 2: Same, with more features
+   * Phase 3: Same interface, potentially different backends
+   * 
+   * @returns ITransactionRepository implementation
+   */
+  static getTransactionRepository(): ITransactionRepository {
+    if (!this.instances.transactionRepository) {
+      logger.info('Initializing PrismaTransactionRepository singleton');
+      this.instances.transactionRepository = new PrismaTransactionRepository(prisma);
+    }
+    return this.instances.transactionRepository;
+  }
+
+  /**
+   * Get queue repository instance
+   * 
+   * Phase 1: PrismaQueueRepository (database-based queue)
+   * Phase 3: Will be replaced with BullMQ + Redis
+   * 
+   * This is temporary but allows us to test locally without Redis
+   * 
+   * @returns IQueueRepository implementation
+   */
+  static getQueueRepository(): IQueueRepository {
+    if (!this.instances.queueRepository) {
+      logger.info('Initializing PrismaQueueRepository singleton (temporary until BullMQ)');
+      this.instances.queueRepository = new PrismaQueueRepository(prisma);
+    }
+    return this.instances.queueRepository;
+  }
+
+  /**
+   * Get wallet repository instance
+   * 
+   * @returns IWalletRepository implementation
+   */
+  static getWalletRepository(): IWalletRepository {
+    if (!this.instances.walletRepository) {
+      logger.info('Initializing PrismaWalletRepository singleton');
+      this.instances.walletRepository = new PrismaWalletRepository(prisma);
+    }
+    return this.instances.walletRepository;
+  }
+
+  /**
    * Clear all service instances (useful for testing)
    */
   static clearInstances(): void {
     this.instances.queue = undefined;
+    this.instances.queueRepository = undefined;
+    this.instances.transactionRepository = undefined;
+    this.instances.walletRepository = undefined;
     this.instances.caches.clear();
     logger.info('Cleared all service instances');
   }

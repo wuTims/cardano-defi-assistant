@@ -10,12 +10,10 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { withAuth } from '@/utils/auth-wrapper';
 import { logger } from '@/lib/logger';
-
 import { ServiceFactory } from '@/services/service-factory';
-import { createWalletRepository } from '@/repositories';
+import { prisma, serialize } from '@/lib/prisma';
 import type { WalletData } from '@/types/wallet';
 
 export const GET = withAuth(async (request, { walletAddress, userId }) => {
@@ -54,18 +52,13 @@ export const GET = withAuth(async (request, { walletAddress, userId }) => {
       await cache.delete(cacheKey);
     }
 
-    // Create Supabase client and wallet repository
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-    
-    const walletRepo = createWalletRepository(supabase);
+    // Get wallet repository from ServiceFactory
+    const walletRepo = ServiceFactory.getWalletRepository();
     
     requestLogger.debug('Fetching wallet data from database');
 
-    // Use repository with proper typing
-    const walletRecord = await walletRepo.findWithSyncStatus(walletAddress, userId);
+    // Use repository to find wallet
+    const walletRecord = await walletRepo.findByAddressAndUser(walletAddress, userId);
 
     // If no wallet record exists, return empty wallet data for new users
     if (!walletRecord) {
@@ -84,41 +77,26 @@ export const GET = withAuth(async (request, { walletAddress, userId }) => {
       return NextResponse.json(emptyWalletResponse);
     }
     
-    // Fetch native assets if any
-    const { data: assets } = await supabase
-      .from('wallet_assets')
-      .select('*')
-      .eq('wallet_address', walletAddress);
+    // For now, we'll get asset information from transactions if needed
+    // In the future, we might add a separate asset_balances table
     
-    // Transform to WalletData format using the view data
-    // Note: Database uses wallet_address, frontend uses address for cleaner API
+    // Transform to WalletData format
     const walletData: WalletData = {
-      address: walletRecord.wallet_address,  // Map wallet_address -> address
+      address: walletRecord.walletAddress,
       balance: {
-        lovelace: walletRecord.balance_lovelace || '0',
-        assets: assets?.map(asset => ({
-          unit: asset.unit,
-          quantity: asset.quantity,
-          policyId: asset.policy_id,
-          assetName: asset.asset_name,
-          fingerprint: asset.fingerprint
-        })) || []
+        lovelace: walletRecord.balanceLovelace?.toString() || '0',
+        assets: [] // TODO: Calculate from transactions or add asset_balances table
       },
       utxos: [], // UTXOs not stored separately for now
-      lastSyncedAt: walletRecord.last_synced_at ? new Date(walletRecord.last_synced_at) : null,
-      syncedBlockHeight: walletRecord.last_synced_block || 0
+      lastSyncedAt: walletRecord.lastSyncedAt,
+      syncedBlockHeight: walletRecord.syncedBlockHeight || 0
     };
     
-    // Cache the wallet data with TTL based on sync status
-    const cacheTTL = walletRecord.sync_status === 'fresh' 
-      ? 5 * 60   // 5 minutes for fresh data
-      : walletRecord.sync_status === 'never'
-      ? 60       // 1 minute for never-synced wallets  
-      : 2 * 60;  // 2 minutes for stale data
-      
+    // Cache the wallet data with simple TTL
+    const cacheTTL = walletRecord.lastSyncedAt ? 5 * 60 : 60; // 5 minutes if synced, 1 minute if not
     await cache.set(cacheKey, walletData, cacheTTL);
     
-    return NextResponse.json(walletData);
+    return NextResponse.json(serialize(walletData));
     
   } catch (error) {
     requestLogger.error({ error: error instanceof Error ? error.message : error }, 'Wallet API error');

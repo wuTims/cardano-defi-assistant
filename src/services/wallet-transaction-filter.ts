@@ -119,16 +119,16 @@ export class WalletTransactionFilter implements IWalletFilter, IAssetFlowCalcula
     const flows: WalletAssetFlow[] = [];
     
     for (const unit of allUnits) {
-      const amountIn = inflows.get(unit) || 0n;
-      const amountOut = outflows.get(unit) || 0n;
-      const netChange = amountIn - amountOut;
+      const inFlow = inflows.get(unit) || 0n;
+      const outFlow = outflows.get(unit) || 0n;
+      const netChange = inFlow - outFlow;
       
       // Only include flows with actual changes
-      if (netChange !== 0n || amountIn > 0n || amountOut > 0n) {
+      if (netChange !== 0n || inFlow > 0n || outFlow > 0n) {
         flows.push({
           token: this.createBasicTokenInfo(unit),
-          amountIn,
-          amountOut,
+          inFlow,
+          outFlow,
           netChange
         });
       }
@@ -175,13 +175,13 @@ export class WalletTransactionFilter implements IWalletFilter, IAssetFlowCalcula
   public validateAssetFlows(flows: readonly WalletAssetFlow[]): boolean {
     for (const flow of flows) {
       // Net change should equal amountIn - amountOut
-      if (flow.netChange !== flow.amountIn - flow.amountOut) {
+      if (flow.netChange !== flow.inFlow - flow.outFlow) {
         console.error(`Invalid asset flow for ${flow.token.unit}: netChange mismatch`);
         return false;
       }
       
       // Amounts should be non-negative
-      if (flow.amountIn < 0n || flow.amountOut < 0n) {
+      if (flow.inFlow < 0n || flow.outFlow < 0n) {
         console.error(`Invalid asset flow for ${flow.token.unit}: negative amounts`);
         return false;
       }
@@ -207,8 +207,8 @@ export class WalletTransactionFilter implements IWalletFilter, IAssetFlowCalcula
     let netNegativeAssets = 0;
 
     for (const flow of flows) {
-      if (flow.amountIn > 0n) inflowAssets++;
-      if (flow.amountOut > 0n) outflowAssets++;
+      if (flow.inFlow > 0n) inflowAssets++;
+      if (flow.outFlow > 0n) outflowAssets++;
       if (flow.netChange > 0n) netPositiveAssets++;
       if (flow.netChange < 0n) netNegativeAssets++;
     }

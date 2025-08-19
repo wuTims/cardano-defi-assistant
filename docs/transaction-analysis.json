@@ -1,0 +1,887 @@
+[
+  {
+    "hash": "4ec1a6574a40a0895b24522966cd6a7619d3c2a1c05dd338fb636cdec5ebb714",
+    "timestamp": "2025-08-13T00:35:39.000Z",
+    "action": "complex_swap",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:1262830",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:1",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:1",
+      "lovelace:166608233",
+      "lovelace:1945322350"
+    ],
+    "assets_out": [
+      "lovelace:166611137",
+      "lovelace:2000000",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:315160",
+      "lovelace:1946432461"
+    ],
+    "net_changes": [
+      "lovelace:-1850185",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:1",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:1",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:-315160"
+    ]
+  },
+  {
+    "hash": "d3334f749d35f212f13c8b7b8e3f51024cbbf1068cd30597193cab6a4c1c1353",
+    "timestamp": "2025-08-11T07:32:37.000Z",
+    "action": "claim_rewards",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:1946432461",
+      "lovelace:5000000"
+    ],
+    "assets_out": [
+      "lovelace:1950606782"
+    ],
+    "net_changes": [
+      "lovelace:825679"
+    ]
+  },
+  {
+    "hash": "0a4a686748642a87f481ff14611fae219b82fd860990f0ae87e2e99f11580643",
+    "timestamp": "2025-08-09T15:31:01.000Z",
+    "protocol": "Minswap",
+    "action": "claim_rewards",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:166611137"
+    ],
+    "assets_out": [],
+    "net_changes": [
+      "lovelace:166611137"
+    ]
+  },
+  {
+    "hash": "1961da5fae16302782a8f2c598b73671fc597f05ad7621c619ac6efccab498f0",
+    "timestamp": "2025-08-09T05:49:01.000Z",
+    "protocol": "Minswap",
+    "action": "unknown",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:1950606782"
+    ],
+    "assets_out": [
+      "lovelace:1950809815",
+      "lovelace:2686536",
+      "6d06570ddd778ec7c0cca09d381eca194e90c8cffa7582879735dbde584552:12420000000"
+    ],
+    "net_changes": [
+      "lovelace:-2889569",
+      "6d06570ddd778ec7c0cca09d381eca194e90c8cffa7582879735dbde584552:-12420000000"
+    ]
+  },
+  {
+    "hash": "8b32e7093e7942d434f7f78dc982e150ea455b7844fcc8ac304c18ce2eb2d0c0",
+    "timestamp": "2025-08-06T16:02:46.000Z",
+    "action": "receive",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:1146460",
+      "5009e607b6dbafb16b5520b36e9aa94d94d3f6ea9dc56e805fed019341494147:2700"
+    ],
+    "assets_out": [],
+    "net_changes": [
+      "lovelace:1146460",
+      "5009e607b6dbafb16b5520b36e9aa94d94d3f6ea9dc56e805fed019341494147:2700"
+    ]
+  },
+  {
+    "hash": "a419af661a5e8dcea15b59481989bffc1d9c069dee170081dece05cb326c6b86",
+    "timestamp": "2025-08-04T17:42:17.000Z",
+    "protocol": "Minswap",
+    "action": "receive",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:952465701"
+    ],
+    "assets_out": [],
+    "net_changes": [
+      "lovelace:952465701"
+    ]
+  },
+  {
+    "hash": "b951f7ad83effbdc45063eb776843f10e3715e6a65642f2d39c33e2369102212",
+    "timestamp": "2025-08-04T17:41:52.000Z",
+    "action": "claim_rewards",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:2000000",
+      "5d16cc1a177b5d9ba9cfa9793b07e60f1fb70fea1f8aef064415d114494147:4890294980"
+    ],
+    "assets_out": [],
+    "net_changes": [
+      "lovelace:2000000",
+      "5d16cc1a177b5d9ba9cfa9793b07e60f1fb70fea1f8aef064415d114494147:4890294980"
+    ]
+  },
+  {
+    "hash": "193dedfd76548b8d0e056b751d0a3667cd52e10dee5748b73853921ae7954b60",
+    "timestamp": "2025-08-04T17:41:52.000Z",
+    "action": "unknown",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:2000000",
+      "lovelace:1833602840"
+    ],
+    "assets_out": [
+      "lovelace:2741152885"
+    ],
+    "net_changes": [
+      "lovelace:-905550045"
+    ]
+  },
+  {
+    "hash": "ed2ffaf319ede375c9ec0367d2913d4209e99f604c8252ba5d7892075c91d59c",
+    "timestamp": "2025-08-04T17:37:42.000Z",
+    "protocol": "Minswap",
+    "action": "receive",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:902465701"
+    ],
+    "assets_out": [],
+    "net_changes": [
+      "lovelace:902465701"
+    ]
+  },
+  {
+    "hash": "b2594be10ce9d42a8f929475368a290c50f913c4d66048dcba134cd6d00bf47f",
+    "timestamp": "2025-08-04T17:35:39.000Z",
+    "protocol": "Minswap",
+    "action": "unknown",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:2741152885"
+    ],
+    "assets_out": [
+      "lovelace:3694038846"
+    ],
+    "net_changes": [
+      "lovelace:-952885961"
+    ]
+  },
+  {
+    "hash": "f4fad834b28a95262ce9b5404658ef34c472f16693e4c488619c5a4986c3f451",
+    "timestamp": "2025-08-04T17:32:21.000Z",
+    "protocol": "Minswap",
+    "action": "receive",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:19748233"
+    ],
+    "assets_out": [],
+    "net_changes": [
+      "lovelace:19748233"
+    ]
+  },
+  {
+    "hash": "199b685e8c99c554a21e9fc3daabfc3a779a20727d8b2ef6ca0065b514642f90",
+    "timestamp": "2025-08-04T17:31:18.000Z",
+    "protocol": "Minswap",
+    "action": "receive",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:29748233"
+    ],
+    "assets_out": [],
+    "net_changes": [
+      "lovelace:29748233"
+    ]
+  },
+  {
+    "hash": "7a3ad9988fb16212ffbbb1ff9ed2cc9eb2cb5b3b79c026faf904e95de5c7224a",
+    "timestamp": "2025-08-04T17:29:43.000Z",
+    "protocol": "Minswap",
+    "action": "unknown",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:3694038846"
+    ],
+    "assets_out": [
+      "lovelace:4646924807"
+    ],
+    "net_changes": [
+      "lovelace:-952885961"
+    ]
+  },
+  {
+    "hash": "c6a3d4811e6820e4f15b1498491e9ecbb18f370043277703301feeaa3258a41c",
+    "timestamp": "2025-08-04T00:19:56.000Z",
+    "protocol": "Minswap",
+    "action": "claim_rewards",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:6682767",
+      "5d16cc1a177b5d9ba9cfa9793b07e60f1fb70fea1f8aef064415d114494147:5000000000"
+    ],
+    "assets_out": [],
+    "net_changes": [
+      "lovelace:6682767",
+      "5d16cc1a177b5d9ba9cfa9793b07e60f1fb70fea1f8aef064415d114494147:5000000000"
+    ]
+  },
+  {
+    "hash": "d61cb3105cf7ffece39bfb9004af1fd51ffaf35f0206406ad08b2ed4dede2dc8",
+    "timestamp": "2025-08-04T00:19:21.000Z",
+    "protocol": "Minswap",
+    "action": "unknown",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:4646924807"
+    ],
+    "assets_out": [
+      "lovelace:5591046634"
+    ],
+    "net_changes": [
+      "lovelace:-944121827"
+    ]
+  },
+  {
+    "hash": "d7cbe8e3e573a1443df51c71fff4854e7902534869084b1c682cd975f64dd996",
+    "timestamp": "2025-08-02T21:03:50.000Z",
+    "action": "receive",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:2000000",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:315160"
+    ],
+    "assets_out": [],
+    "net_changes": [
+      "lovelace:2000000",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:315160"
+    ]
+  },
+  {
+    "hash": "0bd767b96950aa7480736bd6f893404dc3582e91d590a5e4c983a0c8f1e8924d",
+    "timestamp": "2025-08-02T21:03:18.000Z",
+    "action": "unknown",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:2000000",
+      "lovelace:5591046634"
+    ],
+    "assets_out": [
+      "lovelace:7000106383"
+    ],
+    "net_changes": [
+      "lovelace:-1407059749"
+    ]
+  },
+  {
+    "hash": "82367cb616653d8aebe5baecd94b97d4d6b982324e8cc0f1735104fa73e2afcc",
+    "timestamp": "2025-08-02T20:30:52.000Z",
+    "action": "complex_swap",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:1331790",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:112225083830",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:138073913436",
+      "lovelace:7000106383",
+      "lovelace:6998878703"
+    ],
+    "assets_out": [
+      "lovelace:7000000000",
+      "lovelace:2185704",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:329939",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:112225083829",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:138073913435",
+      "lovelace:7000000000"
+    ],
+    "net_changes": [
+      "lovelace:-1868828",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:1",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:1",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:-329939"
+    ]
+  },
+  {
+    "hash": "27dd7093821f52818d3ae9c10865c11177c473bf59f5b6973bac5263ef1f36ce",
+    "timestamp": "2025-08-02T08:58:19.000Z",
+    "action": "receive",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:7000000000"
+    ],
+    "assets_out": [],
+    "net_changes": [
+      "lovelace:7000000000"
+    ]
+  },
+  {
+    "hash": "88d9404cf116722c0da108fc1532ea75dc2b5d042dd949cdf26ebaf57004b870",
+    "timestamp": "2025-08-01T01:25:06.000Z",
+    "protocol": "Minswap",
+    "action": "claim_rewards",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:2686536",
+      "6d06570ddd778ec7c0cca09d381eca194e90c8cffa7582879735dbde584552:12420000000"
+    ],
+    "assets_out": [],
+    "net_changes": [
+      "lovelace:2686536",
+      "6d06570ddd778ec7c0cca09d381eca194e90c8cffa7582879735dbde584552:12420000000"
+    ]
+  },
+  {
+    "hash": "2a28e120c5246c7647d5911f01cd702b857506b266c157bb36b345f6c5f1b26f",
+    "timestamp": "2025-08-01T01:24:36.000Z",
+    "protocol": "Minswap",
+    "action": "unknown",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:1950809815"
+    ],
+    "assets_out": [
+      "lovelace:2091688942"
+    ],
+    "net_changes": [
+      "lovelace:-140879127"
+    ]
+  },
+  {
+    "hash": "2c5694df2a3f322fca568028ed421f08f13d1e8a53bed1697fe312b841d05e02",
+    "timestamp": "2025-07-29T19:37:27.000Z",
+    "protocol": "Minswap",
+    "action": "complex_swap",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:2091688942",
+      "lovelace:2027072",
+      "29d222ce763455e3d7a09a665ce554f00ac89d2e99a1a83d267170c64d494e:47959018759",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:689091090517"
+    ],
+    "assets_out": [
+      "lovelace:2094198709",
+      "lovelace:1344720",
+      "29d222ce763455e3d7a09a665ce554f00ac89d2e99a1a83d267170c64d494e:361547018759",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:689091090517"
+    ],
+    "net_changes": [
+      "lovelace:-1827415",
+      "29d222ce763455e3d7a09a665ce554f00ac89d2e99a1a83d267170c64d494e:-313588000000",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:0"
+    ]
+  },
+  {
+    "hash": "7e5d9d3ca56d15966ec04687f20351f1dd2168ac971bdb0a30ef5fdd14d6af14",
+    "timestamp": "2025-07-29T19:29:12.000Z",
+    "protocol": "Minswap",
+    "action": "receive",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:9223253",
+      "29d222ce763455e3d7a09a665ce554f00ac89d2e99a1a83d267170c64d494e:154395519"
+    ],
+    "assets_out": [],
+    "net_changes": [
+      "lovelace:9223253",
+      "29d222ce763455e3d7a09a665ce554f00ac89d2e99a1a83d267170c64d494e:154395519"
+    ]
+  },
+  {
+    "hash": "a72da747666aa6675a896247c641e63714f4c6d6a10082653a91119de950ba16",
+    "timestamp": "2025-07-29T19:29:03.000Z",
+    "protocol": "Minswap",
+    "action": "unknown",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:2094198709"
+    ],
+    "assets_out": [
+      "lovelace:2094440937",
+      "lovelace:2000000",
+      "f5808c2c990d86da54bfc97d89cee6efa20cd8461616359478d96b4c2ffadbb87144e875749122e0bbb9f535eeaa7f5660c6c4a91bcc4121e477f08d:77683824"
+    ],
+    "net_changes": [
+      "lovelace:-2242228",
+      "f5808c2c990d86da54bfc97d89cee6efa20cd8461616359478d96b4c2ffadbb87144e875749122e0bbb9f535eeaa7f5660c6c4a91bcc4121e477f08d:-77683824"
+    ]
+  },
+  {
+    "hash": "ff1fa03becde130f91b67f973d32a7177b192d9c1b9baa1d7a0a06823539bb11",
+    "timestamp": "2025-07-29T19:25:38.000Z",
+    "protocol": "Minswap",
+    "action": "claim_rewards",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:2000000",
+      "f5808c2c990d86da54bfc97d89cee6efa20cd8461616359478d96b4c2ffadbb87144e875749122e0bbb9f535eeaa7f5660c6c4a91bcc4121e477f08d:77683824"
+    ],
+    "assets_out": [],
+    "net_changes": [
+      "lovelace:2000000",
+      "f5808c2c990d86da54bfc97d89cee6efa20cd8461616359478d96b4c2ffadbb87144e875749122e0bbb9f535eeaa7f5660c6c4a91bcc4121e477f08d:77683824"
+    ]
+  },
+  {
+    "hash": "e628d1e5ec3711a55a0785550d78c2ad04aa14825338ad9b5f64d67adc28f6fd",
+    "timestamp": "2025-07-29T19:24:50.000Z",
+    "protocol": "Minswap",
+    "action": "complex_swap",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:2094440937",
+      "lovelace:2185704",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:329939",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:112225083829",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:138073913435"
+    ],
+    "assets_out": [
+      "lovelace:1508500",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:344139",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:112225083829",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:138073913435",
+      "lovelace:1155080",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:1405800",
+      "lovelace:8468617348"
+    ],
+    "net_changes": [
+      "lovelace:-6374654287",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:-1420000",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:0",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:0"
+    ]
+  },
+  {
+    "hash": "d1a2eb3b3bd22ffe3370a74409fdf0c1f7b25329fe62a1e467af2cda8bf67e06",
+    "timestamp": "2025-07-29T19:18:21.000Z",
+    "action": "unknown",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:1155080",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:1405800",
+      "lovelace:8468617348",
+      "lovelace:8471696785"
+    ],
+    "assets_out": [
+      "lovelace:8472802474",
+      "lovelace:8472802474"
+    ],
+    "net_changes": [
+      "lovelace:-4135735",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:1405800"
+    ]
+  },
+  {
+    "hash": "d15d8491c7142254287b7c90ee85c3c488eec68da410a21d55e35ef5ef5429e7",
+    "timestamp": "2025-07-29T18:56:36.000Z",
+    "action": "complex_swap",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:1344720",
+      "29d222ce763455e3d7a09a665ce554f00ac89d2e99a1a83d267170c64d494e:361547018759",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:689091090517",
+      "lovelace:8472802474",
+      "lovelace:8472567393"
+    ],
+    "assets_out": [
+      "lovelace:8473285566",
+      "lovelace:1344720",
+      "29d222ce763455e3d7a09a665ce554f00ac89d2e99a1a83d267170c64d494e:361547018759",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:1400000000000",
+      "lovelace:8473285566"
+    ],
+    "net_changes": [
+      "lovelace:-1201265",
+      "29d222ce763455e3d7a09a665ce554f00ac89d2e99a1a83d267170c64d494e:0",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:-710908909483"
+    ]
+  },
+  {
+    "hash": "ad1f35f3ada407940ff7757bc85303d2f754013ed1ca474e0f182085f0b04b18",
+    "timestamp": "2025-07-28T18:48:27.000Z",
+    "action": "receive",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:1344720",
+      "29d222ce763455e3d7a09a665ce554f00ac89d2e99a1a83d267170c64d494e:361547018759",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:1400000000000"
+    ],
+    "assets_out": [],
+    "net_changes": [
+      "lovelace:1344720",
+      "29d222ce763455e3d7a09a665ce554f00ac89d2e99a1a83d267170c64d494e:361547018759",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:1400000000000"
+    ]
+  },
+  {
+    "hash": "819056410336c05928501d4e50f95dad46f62a85283a58c2ed9aae90ad122337",
+    "timestamp": "2025-07-24T19:03:09.000Z",
+    "action": "complex_swap",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:1508500",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:344139",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:112225083829",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:138073913435",
+      "lovelace:8473285566",
+      "lovelace:8472990702"
+    ],
+    "assets_out": [
+      "lovelace:1508500",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:344139",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:189591317730",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:138073913434",
+      "lovelace:8473875293",
+      "lovelace:8473875293"
+    ],
+    "net_changes": [
+      "lovelace:-1474318",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:0",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:-77366233901",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:1"
+    ]
+  },
+  {
+    "hash": "a0e898435d80294b8f664bb1f3eab2f687277fa1852aa781b7f8667562eb55b2",
+    "timestamp": "2025-07-24T19:01:05.000Z",
+    "action": "complex_swap",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:1508500",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:344139",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:189591317730",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:138073913434",
+      "lovelace:8473875293",
+      "lovelace:9999309638"
+    ],
+    "assets_out": [
+      "lovelace:2229256",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:10000",
+      "lovelace:1244419131",
+      "lovelace:2000000",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:92059",
+      "lovelace:10000000000",
+      "lovelace:2000000",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:242080",
+      "lovelace:1942542",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:1",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:1",
+      "lovelace:33690983",
+      "lovelace:5000000",
+      "lovelace:1155080",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:138073913433",
+      "lovelace:1187407042",
+      "lovelace:10000000000"
+    ],
+    "net_changes": [
+      "lovelace:-4005150603",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:0",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:189591317729",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:0"
+    ]
+  },
+  {
+    "hash": "533b7dc213ddb26e8cc2c6463a73d9af16a6a656d6741a97c6a5917a5f7e4d04",
+    "timestamp": "2025-07-24T18:58:38.000Z",
+    "action": "receive",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:10000000000"
+    ],
+    "assets_out": [],
+    "net_changes": [
+      "lovelace:10000000000"
+    ]
+  },
+  {
+    "hash": "d31bf1ab9ebae9c5c6196e17764d02e38aaa7e626996f64b123d89436b3a852c",
+    "timestamp": "2025-07-24T18:44:35.000Z",
+    "action": "complex_swap",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:1155080",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:138073913433",
+      "lovelace:1187407042",
+      "lovelace:1243495036"
+    ],
+    "assets_out": [
+      "lovelace:1155080",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:47398454834",
+      "lovelace:1186868025",
+      "lovelace:1155080",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:97999963566",
+      "lovelace:1244419131"
+    ],
+    "net_changes": [
+      "lovelace:-1540158",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:138073913433",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:-145398418400"
+    ]
+  },
+  {
+    "hash": "9349dbf7ab0b255d0a8266aed4069b08ba14b4258cef987851757416ead2a4d7",
+    "timestamp": "2025-07-23T19:51:29.000Z",
+    "action": "unknown",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:1155080",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:97999963566",
+      "lovelace:33690983",
+      "lovelace:1243557174"
+    ],
+    "assets_out": [
+      "lovelace:35425011",
+      "lovelace:1244419131"
+    ],
+    "net_changes": [
+      "lovelace:-1440905",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:97999963566"
+    ]
+  },
+  {
+    "hash": "4b4a1c9b07195c3f5d30ebb55a038412206b2dcea945e8f59a56368a69bb34f2",
+    "timestamp": "2025-07-23T19:50:49.000Z",
+    "protocol": "Minswap",
+    "action": "receive",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:2000000",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:92059"
+    ],
+    "assets_out": [],
+    "net_changes": [
+      "lovelace:2000000",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:92059"
+    ]
+  },
+  {
+    "hash": "650609e902759f3ea2ca1021a3239c546743f3c9d930728da77f98ffa7353f0a",
+    "timestamp": "2025-07-23T19:50:49.000Z",
+    "action": "receive",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:2000000",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:242080"
+    ],
+    "assets_out": [],
+    "net_changes": [
+      "lovelace:2000000",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:242080"
+    ]
+  },
+  {
+    "hash": "4e3f079fe24d8a1a85d3b79621e769509665c9f9df50892aaa35e6536eb09647",
+    "timestamp": "2025-07-23T19:50:07.000Z",
+    "protocol": "Minswap",
+    "action": "unknown",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:1186868025"
+    ],
+    "assets_out": [
+      "lovelace:1249125000",
+      "lovelace:1446380466"
+    ],
+    "net_changes": [
+      "lovelace:-1508637441"
+    ]
+  },
+  {
+    "hash": "166e3e37d487ea2f77542bcda1cb3ccba6598bf3eed8e419e4671b4675579da6",
+    "timestamp": "2025-07-22T18:38:10.000Z",
+    "protocol": "Minswap",
+    "action": "claim_rewards",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:2229256",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:10000"
+    ],
+    "assets_out": [],
+    "net_changes": [
+      "lovelace:2229256",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:10000"
+    ]
+  },
+  {
+    "hash": "d0d0a619377b29ca37d16d72756130c1758b5521719ba24ff5eba0ef3726544c",
+    "timestamp": "2025-07-22T18:38:10.000Z",
+    "protocol": "Minswap",
+    "action": "unknown",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:1446380466"
+    ],
+    "assets_out": [
+      "lovelace:1495346161"
+    ],
+    "net_changes": [
+      "lovelace:-48965695"
+    ]
+  },
+  {
+    "hash": "0ded8ac279d9bf95c65d9b099adbc07ab076e3050c2a1c2a810197c7a968be34",
+    "timestamp": "2025-07-22T18:32:38.000Z",
+    "action": "unknown",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:1155080",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:47398454834",
+      "lovelace:1495346161",
+      "lovelace:2497300422"
+    ],
+    "assets_out": [
+      "lovelace:2497902879",
+      "lovelace:2497902879"
+    ],
+    "net_changes": [
+      "lovelace:-1002004095",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:47398454834"
+    ]
+  },
+  {
+    "hash": "da8ab28fdd9018cececf87d8ee7a86acc97af1bf35264db985091a623b585110",
+    "timestamp": "2025-07-22T18:26:56.000Z",
+    "protocol": "Minswap",
+    "action": "unknown",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:2497902879"
+    ],
+    "assets_out": [
+      "lovelace:2000000",
+      "f5808c2c990d86da54bfc97d89cee6efa20cd8461616359478d96b4c2ffadbb87144e875749122e0bbb9f535eeaa7f5660c6c4a91bcc4121e477f08d:167079243",
+      "lovelace:2498250000"
+    ],
+    "net_changes": [
+      "lovelace:-2347121",
+      "f5808c2c990d86da54bfc97d89cee6efa20cd8461616359478d96b4c2ffadbb87144e875749122e0bbb9f535eeaa7f5660c6c4a91bcc4121e477f08d:-167079243"
+    ]
+  },
+  {
+    "hash": "0c1f0da4b7bc43276051bb852dc0902e65102d5521470b15f949cfedb69ea02f",
+    "timestamp": "2025-07-22T18:25:39.000Z",
+    "protocol": "Minswap",
+    "action": "claim_rewards",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:2000000",
+      "f5808c2c990d86da54bfc97d89cee6efa20cd8461616359478d96b4c2ffadbb87144e875749122e0bbb9f535eeaa7f5660c6c4a91bcc4121e477f08d:167079243"
+    ],
+    "assets_out": [],
+    "net_changes": [
+      "lovelace:2000000",
+      "f5808c2c990d86da54bfc97d89cee6efa20cd8461616359478d96b4c2ffadbb87144e875749122e0bbb9f535eeaa7f5660c6c4a91bcc4121e477f08d:167079243"
+    ]
+  },
+  {
+    "hash": "6c2f7600ab3eab54d71100164b229c440cb00d1315d8e7d051dbe8ed7b62834c",
+    "timestamp": "2025-07-22T18:25:39.000Z",
+    "protocol": "Minswap",
+    "action": "complex_swap",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:35425011",
+      "lovelace:1942542",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:1",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:1"
+    ],
+    "assets_out": [
+      "lovelace:1439540",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:3029945",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:1",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:1",
+      "lovelace:8800000000",
+      "lovelace:4996311971"
+    ],
+    "net_changes": [
+      "lovelace:-13760383958",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:0",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:0",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:-3029945"
+    ]
+  },
+  {
+    "hash": "171e37f945d36615d5a78ff454d99b6978bde6635c1283102c65d3ce7ff4d552",
+    "timestamp": "2025-07-22T18:23:37.000Z",
+    "action": "complex_swap",
+    "is_complex": true,
+    "assets_in": [
+      "lovelace:1439540",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:3029945",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:1",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:1",
+      "lovelace:1244419131",
+      "lovelace:8798960111"
+    ],
+    "assets_out": [
+      "lovelace:1331790",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:936946690552",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:555063813641",
+      "lovelace:1249125000",
+      "lovelace:8800000000"
+    ],
+    "net_changes": [
+      "lovelace:-5638008",
+      "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b:3029945",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:-936946690551",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:-555063813640"
+    ]
+  },
+  {
+    "hash": "a79160929fb1e9ebce76dfae261ab52633a95e0c054aa447d9b6d2c32c451111",
+    "timestamp": "2025-07-22T18:12:20.000Z",
+    "action": "stake_delegation",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:4996311971",
+      "lovelace:2498250000",
+      "lovelace:1249125000",
+      "lovelace:1249125000",
+      "lovelace:5000000"
+    ],
+    "assets_out": [
+      "lovelace:10000000000"
+    ],
+    "net_changes": [
+      "lovelace:-2188029"
+    ]
+  },
+  {
+    "hash": "96dfa65273becd4f9f62063e557419655fa67f1ccc707ce0c22cec09d3666370",
+    "timestamp": "2025-07-22T18:02:13.000Z",
+    "action": "receive",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:1331790",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:936946690552",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:555063813641"
+    ],
+    "assets_out": [],
+    "net_changes": [
+      "lovelace:1331790",
+      "a04ce7a52545e5e33c2867e148898d9e667a69602285f6a1298f9d68:936946690552",
+      "d15c36d6dec655677acb3318294f116ce01d8d9def3cc54cdd78909b:555063813641"
+    ]
+  },
+  {
+    "hash": "20d75e093c1cd157b5385ac01da270a3c4211eb493f93c4db47de2c0cf05ca84",
+    "timestamp": "2025-07-22T17:25:23.000Z",
+    "action": "receive",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:8800000000"
+    ],
+    "assets_out": [],
+    "net_changes": [
+      "lovelace:8800000000"
+    ]
+  },
+  {
+    "hash": "e4ed645dccfa91e32256486c68a874bbc2535d6ad268012ad92b0d8200727d67",
+    "timestamp": "2025-07-22T17:23:31.000Z",
+    "action": "receive",
+    "is_complex": false,
+    "assets_in": [
+      "lovelace:10000000000"
+    ],
+    "assets_out": [],
+    "net_changes": [
+      "lovelace:10000000000"
+    ]
+  }
+]

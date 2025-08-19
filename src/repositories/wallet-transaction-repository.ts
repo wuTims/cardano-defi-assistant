@@ -62,8 +62,8 @@ export class WalletTransactionRepository extends BaseRepository implements ITran
       transaction_id: transaction.id,
       token_unit: flow.token.unit,
       net_change: flow.netChange.toString(),
-      in_flow: flow.amountIn.toString(),
-      out_flow: flow.amountOut.toString()
+      in_flow: flow.inFlow.toString(),
+      out_flow: flow.outFlow.toString()
     }));
 
     if (dbFlows.length > 0) {
@@ -98,8 +98,8 @@ export class WalletTransactionRepository extends BaseRepository implements ITran
         decimals: flow.token.decimals,
         category: flow.token.category,
         net_change: flow.netChange.toString(),
-        in_flow: flow.amountIn.toString(),
-        out_flow: flow.amountOut.toString()
+        in_flow: flow.inFlow.toString(),
+        out_flow: flow.outFlow.toString()
       }))
     }));
 
@@ -261,8 +261,8 @@ export class WalletTransactionRepository extends BaseRepository implements ITran
           decimals: flow.decimals || 0,
           category: flow.token_category || flow.category || 'fungible'
         },
-        amountIn: BigInt(flow.in_flow || 0),
-        amountOut: BigInt(flow.out_flow || 0),
+        inFlow: BigInt(flow.in_flow || 0),
+        outFlow: BigInt(flow.out_flow || 0),
         netChange: BigInt(flow.net_change)
       }))
     };

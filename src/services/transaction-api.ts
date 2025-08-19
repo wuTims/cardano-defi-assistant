@@ -91,8 +91,8 @@ function transformAssetFlows(assetFlows: RPCAssetFlow[] | string | null): Wallet
 
     return {
       token,
-      amountIn: BigInt(flow.in_flow || 0),
-      amountOut: BigInt(flow.out_flow || 0),
+      inFlow: BigInt(flow.in_flow || 0),
+      outFlow: BigInt(flow.out_flow || 0),
       netChange: BigInt(flow.net_change || 0)
     };
   });

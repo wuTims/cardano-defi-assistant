@@ -1,0 +1,179 @@
+// Prisma Schema for Cardano DeFi Assistant
+// This schema follows the "Store History, Calculate Present" philosophy
+// - Store ONLY immutable blockchain facts (transactions)
+// - Calculate ALL current state on-demand (positions, balances)
+// - Use protocol APIs for real-time data
+// - Cache aggressively but briefly (5-60 second TTL)
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["multiSchema", "postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  schemas = ["public", "auth"]
+}
+
+model User {
+  id            String   @id @default(uuid())
+  walletAddress String   @map("wallet_address") @unique
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  wallets       Wallet[]
+  transactions  WalletTransaction[]
+  actionGroups  ActionGroup[]
+  
+  @@map("users")
+  @@schema("public")
+}
+
+model Wallet {
+  id                  String    @id @default(uuid())
+  userId              String    @map("user_id")
+  walletAddress       String    @map("wallet_address")
+  stakeAddress        String?   @map("stake_address")
+  syncedBlockHeight   Int       @default(0) @map("synced_block_height")
+  balanceLovelace     BigInt    @default(0) @map("balance_lovelace")
+  lastSyncedAt        DateTime? @map("last_synced_at")
+  syncInProgress      Boolean   @default(false) @map("sync_in_progress")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  
+  user                User      @relation(fields: [userId], references: [id])
+  
+  @@unique([userId, walletAddress])
+  @@map("wallets")
+  @@schema("public")
+}
+
+// Groups multiple transactions into a single logical action (OPTIONAL - only for complex operations)
+model ActionGroup {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  actionType      String   @map("action_type") // 'complex_swap', 'supply_and_borrow', etc.
+  protocol        String?  @map("protocol")
+  description     String
+  startBlock      Int      @map("start_block")
+  endBlock        Int      @map("end_block")
+  status          String   @default("completed") // 'pending', 'completed', 'failed'
+  metadata        Json?    // Store action-specific data
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  user            User     @relation(fields: [userId], references: [id])
+  transactions    WalletTransaction[]
+  
+  @@index([userId, startBlock])
+  @@index([actionType])
+  @@map("action_groups")
+  @@schema("public")
+}
+
+model WalletTransaction {
+  id              String   @id
+  userId          String   @map("user_id")
+  walletAddress   String   @map("wallet_address")
+  txHash          String   @map("tx_hash")
+  blockHeight     Int      @map("block_height")
+  txTimestamp     DateTime @map("tx_timestamp")
+  txAction        String   @map("tx_action")
+  txProtocol      String?  @map("tx_protocol")
+  description     String?
+  netAdaChange    BigInt   @map("net_ada_change")
+  fees            BigInt
+  actionGroupId   String?  @map("action_group_id") // Link to action group
+  sequenceNumber  Int?     @map("sequence_number") // Order within action group
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  user            User         @relation(fields: [userId], references: [id])
+  actionGroup     ActionGroup? @relation(fields: [actionGroupId], references: [id])
+  assetFlows      AssetFlow[]
+  
+  @@unique([userId, txHash])
+  @@index([walletAddress, blockHeight])
+  @@index([userId, txTimestamp])
+  @@index([actionGroupId, sequenceNumber])
+  @@map("wallet_transactions")
+  @@schema("public")
+}
+
+model AssetFlow {
+  id              String   @id @default(uuid())
+  transactionId   String   @map("transaction_id")
+  tokenUnit       String   @map("token_unit")
+  netChange       BigInt   @map("net_change")
+  inFlow          BigInt   @map("in_flow")
+  outFlow         BigInt   @map("out_flow")
+  positionId      String?  @map("position_id") // Link to position affected
+  
+  transaction     WalletTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  token           Token? @relation(fields: [tokenUnit], references: [unit])
+  
+  @@index([transactionId])
+  @@index([tokenUnit])
+  @@index([positionId])
+  @@map("asset_flows")
+  @@schema("public")
+}
+
+// NO POSITION TABLE - Positions calculated on-demand from protocol APIs
+// NO POSITION EVENTS - Use transaction history instead
+
+model Token {
+  unit        String   @id
+  policyId    String   @map("policy_id")
+  assetName   String   @map("asset_name")
+  name        String?
+  ticker      String?
+  decimals    Int      @default(0)
+  category    String   @default("fungible")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  assetFlows  AssetFlow[]
+  
+  @@index([policyId])
+  @@map("tokens")
+  @@schema("public")
+}
+
+model AuthChallenge {
+  id            String   @id @default(uuid())
+  walletAddress String   @map("wallet_address")
+  nonce         String   @unique
+  challenge     String
+  used          Boolean  @default(false)
+  expiresAt     DateTime @map("expires_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  
+  @@index([walletAddress])
+  @@index([nonce])
+  @@map("auth_challenges")
+  @@schema("public")
+}
+
+model SyncJob {
+  id            String   @id @default(uuid())
+  walletAddress String   @map("wallet_address")
+  userId        String?  @map("user_id")
+  jobType       String   @map("job_type")
+  status        String   @default("pending")
+  priority      Int      @default(0)
+  retryCount    Int      @default(0) @map("retry_count")
+  maxRetries    Int      @default(3) @map("max_retries")
+  errorMessage  String?  @map("error_message")
+  metadata      Json?
+  scheduledAt   DateTime @default(now()) @map("scheduled_at")
+  startedAt     DateTime? @map("started_at")
+  completedAt   DateTime? @map("completed_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  
+  @@index([status, scheduledAt])
+  @@index([walletAddress])
+  @@map("sync_jobs")
+  @@schema("public")
+}
