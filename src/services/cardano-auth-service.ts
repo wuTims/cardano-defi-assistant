@@ -16,10 +16,10 @@ import { verifyWalletSignature } from '@/lib/auth/wallet-verification';
 import type {
   AuthChallenge,
   WalletSignatureArgs,
-  SupabaseAuthToken,
-  AuthServiceResponse
-} from '@/types/auth';
-import { WalletType } from '@/types/auth';
+  AuthServiceResponse,
+  AuthToken
+} from '@/core/types/auth';
+import { WalletType } from '@/core/types/auth';
 
 export class CardanoAuthService {
   private static instance: CardanoAuthService;
@@ -68,7 +68,7 @@ export class CardanoAuthService {
     signatureData: WalletSignatureArgs,
     walletType: WalletType,
     bech32Address: string
-  ): Promise<AuthServiceResponse<SupabaseAuthToken>> {
+  ): Promise<AuthServiceResponse<AuthToken>> {
     try {
       const { hexAddress, coseSignature, publicKey, nonce } = signatureData;
 
@@ -161,7 +161,7 @@ export class CardanoAuthService {
   public async refreshToken(
     currentToken: string,
     walletAddress: string
-  ): Promise<AuthServiceResponse<SupabaseAuthToken>> {
+  ): Promise<AuthServiceResponse<AuthToken>> {
     try {
       if (!currentToken || !walletAddress) {
         throw new ValidationError('Current token and wallet address are required');

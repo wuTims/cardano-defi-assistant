@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
 import { walletApiService } from '@/services/wallet-api';
 import { queryKeys } from '@/lib/query/query-keys';
-import type { WalletData } from '@/types/wallet';
+import type { WalletData } from '@/core/types/wallet';
 
 /**
  * Hook to fetch wallet data

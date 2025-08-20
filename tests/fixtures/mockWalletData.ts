@@ -2,8 +2,8 @@
  * Mock data for testing wallet functionality
  */
 
-import { WalletData } from '../../src/types/wallet';
-import { WalletSignatureArgs, AuthChallenge } from '../../src/types/auth';
+import { WalletData } from '../../src/core/types/wallet';
+import { WalletSignatureArgs, AuthChallenge } from '../../src/core/types/auth';
 
 export const mockWalletAddresses = {
   valid: 'addr1qx2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzz2zl9c2dhpxy5v9kv4z6snyh6f8g3npz69rtr5cj6vhkrrgqt7vp0t',

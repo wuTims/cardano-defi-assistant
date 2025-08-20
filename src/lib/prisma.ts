@@ -5,7 +5,7 @@
  * Prevents multiple instances in development with hot reloading.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -84,4 +84,13 @@ export function serialize<T>(value: T): Serialized<T> {
   
   // Primitive values (string, number, boolean) pass through unchanged
   return value as Serialized<T>;
+}
+
+/**
+ * Helper function to convert domain metadata to Prisma JSON type
+ * Encapsulates infrastructure-specific type conversion
+ */
+export function toJsonValue(value: Record<string, unknown> | undefined): Prisma.InputJsonValue | undefined {
+  if (!value) return undefined;
+  return value as Prisma.InputJsonValue;
 }

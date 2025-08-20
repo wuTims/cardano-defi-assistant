@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { transactionApi } from '@/services/transaction-api';
 import { queryKeys } from '@/lib/query/query-keys';
-import type { TransactionFilters, WalletTransaction } from '@/types/transaction';
+import type { TransactionFilters, WalletTransaction } from '@/core/types/transaction';
 
 /**
  * Hook for fetching transactions with infinite scrolling

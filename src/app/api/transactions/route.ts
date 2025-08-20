@@ -45,7 +45,7 @@ export const GET = withAuth(async (request, { walletAddress, userId }) => {
     const cacheKey = ServiceFactory.cacheKey.transactions(walletAddress, page, filterString);
     
     // Check cache first
-    const cachedResponse = await cache.get<any>(cacheKey);
+    const cachedResponse = await cache.get(cacheKey);
     if (cachedResponse) {
       requestLogger.debug({ page, cacheKey }, 'Transactions served from cache');
       

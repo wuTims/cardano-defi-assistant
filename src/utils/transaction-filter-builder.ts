@@ -5,7 +5,7 @@
  * Provides a fluent API for filter construction while maintaining type safety.
  */
 
-import { TransactionAction, Protocol, TransactionFilters } from '@/types/transaction';
+import { TransactionAction, Protocol, TransactionFilters } from '@/core/types/transaction';
 
 export class TransactionFilterBuilder {
   private filters: Partial<TransactionFilters> = {};

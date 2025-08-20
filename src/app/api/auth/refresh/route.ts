@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       walletAddress
     );
 
-    if (!refreshResult.success || !refreshResult.data) {
+    if (!refreshResult.success || !refreshResult.data || !refreshResult.data.userId) {
       // Return appropriate error based on failure type
       const statusCode = refreshResult.error?.includes('expired') || refreshResult.error?.includes('invalid') ? 401 : // Unauthorized
                          refreshResult.error?.includes('not found') ? 404 : // Not Found
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
                          500; // Internal Server Error
 
       return NextResponse.json(
-        { error: refreshResult.error || 'Token refresh failed' },
+        { error: refreshResult.error || 'Token refresh failed - user not found' },
         { status: statusCode }
       );
     }

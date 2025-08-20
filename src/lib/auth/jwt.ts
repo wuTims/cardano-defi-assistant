@@ -10,7 +10,8 @@ import { createPublicKey, type JsonWebKey } from 'crypto';
 import { config } from '@/lib/config';
 import { AuthenticationError, ValidationError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
-import type { AuthServiceResponse, WalletType, SupabaseJWTPayload } from '@/types/auth';
+import type { AuthServiceResponse, WalletType } from '@/core/types/auth';
+import type { SupabaseJWTPayload } from '@/infrastructure/auth/supabase-types';
 
 /**
  * JWT Manager class for handling token operations

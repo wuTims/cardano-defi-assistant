@@ -9,8 +9,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cardanoAuthService } from '@/services/cardano-auth-service';
 import { logger } from '@/lib/logger';
 import { validateAndConvertHexToBech32 } from '@/lib/cardano/addresses';
-import { WalletType } from '@/types/auth';
-import type { VerifyRequest, VerifyResponse } from '@/types/auth';
+import { WalletType } from '@/core/types/auth';
+import type { VerifyRequest, VerifyResponse } from '@/core/types/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -69,8 +69,8 @@ export async function POST(request: NextRequest) {
       bech32Address // pass Bech32 address for database operations
     );
 
-    if (!result.success || !result.data) {
-      logger.warn(`Authentication failed for wallet ${bech32Address.slice(0, 12)}... with nonce ${nonce.slice(0, 8)}...: ${result.error}`);
+    if (!result.success || !result.data || !result.data.userId) {
+      logger.warn(`Authentication failed for wallet ${bech32Address.slice(0, 12)}... with nonce ${nonce.slice(0, 8)}...: ${result.error || 'No user ID'}`);
 
       // Return appropriate error based on failure type
       const statusCode = result.error?.includes('expired') ? 410 : // Gone
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
                          500; // Internal Server Error
 
       return NextResponse.json(
-        { error: result.error || 'Authentication failed' },
+        { error: result.error || 'Authentication failed - could not create/find user' },
         { status: statusCode }
       );
     }

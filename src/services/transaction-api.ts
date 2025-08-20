@@ -1,13 +1,9 @@
 import { logger } from '@/lib/logger';
-import { TokenCategory, TransactionAction, Protocol } from '@/types/transaction';
+import { TokenCategory, TransactionAction, Protocol } from '@/core/types/transaction';
 
 // Create module-level logger once
 const transactionApiLogger = logger.child({ module: 'transaction-api' });
-import type { WalletTransaction, TransactionFilters, WalletAssetFlow, TokenInfo } from '@/types/transaction';
-import type { 
-  TransactionPaginatedRow,
-  RPCAssetFlow 
-} from '@/types/database';
+import type { WalletTransaction, TransactionFilters, WalletAssetFlow, TokenInfo } from '@/core/types/transaction';
 
 /**
  * Transaction API response interface
@@ -21,10 +17,42 @@ export interface TransactionResponse {
 }
 
 /**
+ * Raw transaction from API (matches what transaction route returns)
+ */
+interface RawTransaction {
+  transaction_id: string;
+  wallet_address: string;
+  tx_hash: string;
+  tx_timestamp: string;
+  tx_action: string;
+  tx_protocol?: string;
+  description?: string;
+  net_ada_change: string;
+  fees: string;
+  block_height: number;
+  asset_flows: Array<{
+    token_unit: string;
+    net_change: string;
+    in_flow: string;
+    out_flow: string;
+    token?: {
+      unit: string;
+      policy_id: string;
+      asset_name: string;
+      name?: string;
+      ticker?: string;
+      decimals: number;
+      category: string;
+      logo?: string;
+    };
+  }>;
+}
+
+/**
  * Raw API response structure
  */
 interface RawTransactionResponse {
-  transactions: TransactionPaginatedRow[];
+  transactions: RawTransaction[];
   hasMore: boolean;
   total: number;
   page: number;
@@ -38,7 +66,7 @@ interface RawTransactionResponse {
 /**
  * Transform transaction from database/API to domain model
  */
-function transformTransaction(row: TransactionPaginatedRow): WalletTransaction {
+function transformTransaction(row: RawTransaction): WalletTransaction {
   // Validate required fields
   if (!row.tx_timestamp) {
     throw new Error(`Transaction ${row.transaction_id} missing required timestamp`);
@@ -68,25 +96,30 @@ function transformTransaction(row: TransactionPaginatedRow): WalletTransaction {
 /**
  * Transform asset flows from database/API to domain model
  */
-function transformAssetFlows(assetFlows: RPCAssetFlow[] | string | null): WalletAssetFlow[] {
-  if (!assetFlows) return [];
-  
-  // Handle both array and JSON string formats
-  const flows: RPCAssetFlow[] = Array.isArray(assetFlows) 
-    ? assetFlows 
-    : (typeof assetFlows === 'string' ? JSON.parse(assetFlows) : []);
+function transformAssetFlows(flows: RawTransaction['asset_flows']): WalletAssetFlow[] {
+  if (!flows || !Array.isArray(flows)) return [];
 
-  return flows.map((flow: RPCAssetFlow) => {
-    const token: TokenInfo = {
+  return flows.map(flow => {
+    const token: TokenInfo = flow.token ? {
+      unit: flow.token.unit,
+      policyId: flow.token.policy_id,
+      assetName: flow.token.asset_name,
+      name: flow.token.name || 'Unknown Token',
+      ticker: flow.token.ticker || 'UNKNOWN',
+      decimals: flow.token.decimals || 0,
+      category: (flow.token.category || 'fungible') as TokenCategory,
+      logo: flow.token.logo,
+      metadata: undefined
+    } : {
+      // Fallback if token data is missing
       unit: flow.token_unit,
-      policyId: flow.policy_id || flow.token_unit.slice(0, 56),
-      assetName: flow.asset_name || flow.token_unit.slice(56),
-      name: flow.name || 'Unknown Token',
-      ticker: flow.ticker || 'UNKNOWN',
-      decimals: flow.decimals || 0,
-      category: (flow.category || 'fungible') as TokenCategory,
-      logo: flow.logo,
-      metadata: flow.metadata
+      policyId: flow.token_unit.slice(0, 56),
+      assetName: flow.token_unit.slice(56),
+      name: 'Unknown Token',
+      ticker: 'UNKNOWN',
+      decimals: 0,
+      category: TokenCategory.FUNGIBLE,
+      metadata: undefined
     };
 
     return {
@@ -182,7 +215,7 @@ export class TransactionApiService {
       }, 'Raw API response received');
 
       // Transform each transaction with proper error handling
-      const transactions = (data.transactions || []).map((row: TransactionPaginatedRow, index: number) => {
+      const transactions = (data.transactions || []).map((row: RawTransaction, index: number) => {
         try {
           const transformed = transformTransaction(row);
           

@@ -6,14 +6,17 @@
  */
 
 import { logger } from '@/lib/logger';
-import type { 
-  ICacheService, 
-  CacheEntry, 
-  CacheConfig 
-} from '@/services/interfaces/cache-service';
+import type { ICacheService, CacheConfig } from '@/core/interfaces/services';
 
-export class InMemoryCache implements ICacheService {
-  private cache = new Map<string, CacheEntry<any>>();
+// Local type definition for cache entry
+type CacheEntry<T> = {
+  value: T;
+  expiresAt?: number;
+  timestamp: number;
+};
+
+export class InMemoryCache<T = unknown> implements ICacheService<T> {
+  private cache = new Map<string, CacheEntry<T>>();
   private stats = {
     hits: 0,
     misses: 0,
@@ -36,7 +39,7 @@ export class InMemoryCache implements ICacheService {
   /**
    * Get a value from cache
    */
-  async get<T>(key: string): Promise<T | null> {
+  async get(key: string): Promise<T | null> {
     const entry = this.cache.get(key);
     
     if (!entry) {
@@ -45,7 +48,7 @@ export class InMemoryCache implements ICacheService {
     }
 
     // Check if expired
-    if (Date.now() > entry.expiresAt) {
+    if (entry.expiresAt && Date.now() > entry.expiresAt) {
       this.cache.delete(key);
       this.stats.misses++;
       return null;
@@ -57,13 +60,13 @@ export class InMemoryCache implements ICacheService {
     this.cache.delete(key);
     this.cache.set(key, entry);
     
-    return entry.value as T;
+    return entry.value;
   }
 
   /**
    * Set a value in cache with optional TTL
    */
-  async set<T>(key: string, value: T, ttlSeconds?: number): Promise<void> {
+  async set(key: string, value: T, ttlSeconds?: number): Promise<void> {
     const ttl = ttlSeconds || this.config.defaultTTL;
     const now = Date.now();
     
@@ -80,8 +83,8 @@ export class InMemoryCache implements ICacheService {
 
     const entry: CacheEntry<T> = {
       value,
-      expiresAt: now + (ttl * 1000),
-      createdAt: now
+      expiresAt: ttl ? now + (ttl * 1000) : undefined,
+      timestamp: now
     };
 
     this.cache.set(key, entry);
@@ -90,25 +93,8 @@ export class InMemoryCache implements ICacheService {
   /**
    * Delete a value from cache
    */
-  async delete(key: string): Promise<void> {
-    this.cache.delete(key);
-  }
-
-  /**
-   * Delete multiple keys matching a pattern
-   */
-  async delPattern(pattern: string): Promise<number> {
-    let deleted = 0;
-    const regex = new RegExp(pattern.replace(/\*/g, '.*'));
-    
-    for (const key of this.cache.keys()) {
-      if (regex.test(key)) {
-        this.cache.delete(key);
-        deleted++;
-      }
-    }
-    
-    return deleted;
+  async delete(key: string): Promise<boolean> {
+    return this.cache.delete(key);
   }
 
   /**
@@ -122,7 +108,7 @@ export class InMemoryCache implements ICacheService {
     }
     
     // Check if expired
-    if (Date.now() > entry.expiresAt) {
+    if (entry.expiresAt && Date.now() > entry.expiresAt) {
       this.cache.delete(key);
       return false;
     }
@@ -151,28 +137,6 @@ export class InMemoryCache implements ICacheService {
       size: this.cache.size,
       ...this.stats
     };
-  }
-
-  /**
-   * Set multiple values at once
-   */
-  async mset(entries: Array<{ key: string; value: any; ttl?: number }>): Promise<void> {
-    for (const entry of entries) {
-      await this.set(entry.key, entry.value, entry.ttl);
-    }
-  }
-
-  /**
-   * Get multiple values at once
-   */
-  async mget<T>(keys: string[]): Promise<Array<T | null>> {
-    const results: Array<T | null> = [];
-    
-    for (const key of keys) {
-      results.push(await this.get<T>(key));
-    }
-    
-    return results;
   }
 
   /**
@@ -211,7 +175,7 @@ export class InMemoryCache implements ICacheService {
     let cleaned = 0;
     
     for (const [key, entry] of this.cache.entries()) {
-      if (now > entry.expiresAt) {
+      if (entry.expiresAt && now > entry.expiresAt) {
         this.cache.delete(key);
         cleaned++;
       }

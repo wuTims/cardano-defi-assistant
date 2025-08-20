@@ -11,7 +11,7 @@ import { prisma } from '@/lib/prisma';
 import { ValidationError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
 import { config } from '@/lib/config';
-import type { AuthChallenge, AuthServiceResponse } from '@/types/auth';
+import type { AuthChallenge, AuthServiceResponse } from '@/core/types/auth';
 
 /**
  * Generate authentication challenge with canonical format
@@ -59,12 +59,12 @@ export async function generateChallenge(walletAddress: string): Promise<AuthServ
 
     // Store challenge in database with exact string
     const authChallengeRepo = ServiceFactory.getAuthChallengeRepository();
-    await authChallengeRepo.storeChallenge(
+    await authChallengeRepo.create({
       walletAddress,
       nonce,
       challenge,
       expiresAt
-    );
+    });
 
     const authChallenge: AuthChallenge = {
       nonce,
@@ -180,7 +180,11 @@ export async function getStoredChallenge(
 ): Promise<AuthServiceResponse<{ challenge: string; expiresAt: Date }>> {
   try {
     const authChallengeRepo = ServiceFactory.getAuthChallengeRepository();
-    const challengeData = await authChallengeRepo.getChallenge(walletAddress, nonce);
+    const challengeRecord = await authChallengeRepo.findValid(walletAddress, nonce);
+    const challengeData = challengeRecord ? {
+      challenge: challengeRecord.challenge,
+      expiresAt: challengeRecord.expiresAt
+    } : null;
     
     if (!challengeData) {
       return {
@@ -215,7 +219,13 @@ export async function markChallengeAsUsed(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const authChallengeRepo = ServiceFactory.getAuthChallengeRepository();
-    const success = await authChallengeRepo.markChallengeUsed(walletAddress, nonce);
+    const challengeRecord = await authChallengeRepo.findValid(walletAddress, nonce);
+    if (!challengeRecord) {
+      return { success: false, error: 'Challenge not found or expired' };
+    }
+    
+    await authChallengeRepo.markAsUsed(challengeRecord.id);
+    const success = true;
     
     if (!success) {
       logger.warn(`Failed to mark challenge as used for wallet: ${walletAddress}`);

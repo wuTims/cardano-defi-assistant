@@ -20,25 +20,25 @@ import { getCardanoWallet, CardanoWalletApi } from '@/lib/cardano/wallets';
 import {
   WalletType,
   WalletConnectionState,
-} from '@/types/auth';
+} from '@/core/types/auth';
 import type {
   NonceRequest,
   NonceResponse,
   VerifyRequest,
   VerifyResponse,
-  SupabaseAuthToken,
   AuthUser,
-} from '@/types/auth';
+  AuthToken,
+} from '@/core/types/auth';
 
 // Re-export types for backward compatibility
-export type { WalletConnectionState, WalletType } from '@/types/auth';
+export type { WalletConnectionState, WalletType } from '@/core/types/auth';
 export type User = AuthUser;
 
 export type AuthContextType = {
   // Direct state exposure (no wrapper)
   isAuthenticated: boolean;
   user: User | null;
-  token: SupabaseAuthToken | null;
+  token: AuthToken | null;
   connectionState: WalletConnectionState;
   error: string | null;
   
@@ -67,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Core state - kept minimal
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<SupabaseAuthToken | null>(null);
+  const [token, setToken] = useState<AuthToken | null>(null);
   const [connectionState, setConnectionState] = useState<WalletConnectionState>(WalletConnectionState.DISCONNECTED);
   const [error, setError] = useState<string | null>(null);
 
@@ -149,7 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const storedToken = localStorage.getItem('wallet-sync-auth-token');
         if (!storedToken) return;
 
-        let tokenData: SupabaseAuthToken;
+        let tokenData: AuthToken;
         try {
           tokenData = JSON.parse(storedToken);
         } catch (error) {
@@ -239,7 +239,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const authResponse = await verifySignature(verifyRequest);
 
       // Update auth state
-      const newToken: SupabaseAuthToken = {
+      const newToken: AuthToken = {
         token: authResponse.accessToken,
         expiresAt: new Date(authResponse.expiresAt),
         walletAddress: authResponse.user.walletAddress, // Server returns Bech32
@@ -297,7 +297,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const refreshResponse = await refreshTokenAPI(user.walletAddress);
       
-      const newToken: SupabaseAuthToken = {
+      const newToken: AuthToken = {
         token: refreshResponse.accessToken,
         expiresAt: new Date(refreshResponse.expiresAt),
         walletAddress: refreshResponse.user.walletAddress,

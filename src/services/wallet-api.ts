@@ -1,5 +1,5 @@
 import { logger } from '@/lib/logger';
-import type { WalletData, SyncResult } from '@/types/wallet';
+import type { WalletData, SyncJobResponse, SyncJobStatus } from '@/core/types/wallet';
 
 /**
  * Wallet API Service
@@ -77,9 +77,10 @@ export class WalletApiService {
   }
 
   /**
-   * Sync wallet with blockchain
+   * Queue wallet sync job
+   * Returns job information instead of blocking for sync to complete
    */
-  async syncWallet(token: string): Promise<SyncResult> {
+  async syncWallet(token: string): Promise<SyncJobResponse> {
     if (!token) {
       throw new Error('Authentication required');
     }
@@ -104,24 +105,52 @@ export class WalletApiService {
       throw new Error(error.error || `Sync failed: ${response.status}`);
     }
 
+    const result: SyncJobResponse = await response.json();
+    return result;
+  }
+
+  /**
+   * Check sync job status
+   */
+  async getSyncJobStatus(token: string, jobId: string): Promise<SyncJobStatus> {
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+
+    const response = await fetch(`/api/wallet/sync?jobId=${jobId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      signal: this.getSignal('sync-status'),
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Authentication failed');
+      }
+      if (response.status === 404) {
+        throw new Error('Job not found');
+      }
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || `Failed to get job status: ${response.status}`);
+    }
+
     const result = await response.json();
     
-    // Ensure proper typing
-    const syncResult: SyncResult = {
-      success: result.success,
-      syncedAt: new Date(result.syncedAt),
-      transactions: {
-        count: result.transactions?.count || 0,
-        blockHeight: result.transactions?.blockHeight || 0,
-      },
-      wallet: {
-        balance: result.wallet?.balance || '0',
-        assets: result.wallet?.assets || 0,
-      },
-      error: result.error,
+    // Transform response to SyncJobStatus type
+    const jobStatus: SyncJobStatus = {
+      id: result.job.id,
+      status: result.job.status,
+      progress: result.job.progress,
+      createdAt: new Date(result.job.createdAt),
+      startedAt: result.job.startedAt ? new Date(result.job.startedAt) : undefined,
+      completedAt: result.job.completedAt ? new Date(result.job.completedAt) : undefined,
+      error: result.job.error,
+      retryCount: result.job.retryCount,
     };
 
-    return syncResult;
+    return jobStatus;
   }
 
 

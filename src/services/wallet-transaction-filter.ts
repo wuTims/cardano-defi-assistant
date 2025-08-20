@@ -17,9 +17,10 @@ import {
   type TxOutput,
   type AssetAmount,
   TokenCategory
-} from '@/types/transaction';
-import type { IWalletFilter, IAssetFlowCalculator } from '@/services/interfaces';
-import { isADA } from '@/types/blockchain';
+} from '@/core/types/transaction';
+import type { IWalletFilter } from './internal/filtering-interfaces';
+import type { IAssetFlowCalculator } from './internal/calculation-interfaces';
+import { isADA } from '@/core/types/blockchain';
 
 export class WalletTransactionFilter implements IWalletFilter, IAssetFlowCalculator {
   /**

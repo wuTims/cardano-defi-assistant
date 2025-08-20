@@ -11,11 +11,12 @@
  * - Extensible via dependency injection of rules
  */
 
-import type { WalletAssetFlow, RawTransaction } from '@/types/transaction';
-import { TransactionAction, Protocol, TokenCategory } from '@/types/transaction';
-import type { ITransactionCategorizer, ICategorizationRule } from '@/services/interfaces';
+import type { WalletAssetFlow, RawTransaction } from '@/core/types/transaction';
+import { TransactionAction, Protocol, TokenCategory } from '@/core/types/transaction';
+import type { ITransactionCategorizer } from '@/core/interfaces/services';
 import { ProtocolTokenRegistry, detectPotentialQToken } from '@/config/protocol-tokens';
 import { logger } from '@/lib/logger';
+import { ICategorizationRule } from './internal/categorization-interfaces';
 
 // Create child logger for transaction categorization with detailed debugging
 const categorizationLogger = logger.child({ module: 'transaction-categorizer' });

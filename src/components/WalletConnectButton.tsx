@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Wallet, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { WalletType } from '@/types/auth';
+import { WalletType } from '@/core/types/auth';
 
 const WALLET_OPTIONS: Array<{ name: string; type: WalletType; color: string }> = [
   { name: 'Nami', type: WalletType.NAMI, color: 'text-blue-400' },

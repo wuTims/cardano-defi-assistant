@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useTransactionList } from '@/hooks/queries/use-transactions-query';
-import { TransactionAction, Protocol } from '@/types/transaction';
+import { TransactionAction, Protocol } from '@/core/types/transaction';
 import { Filter, X, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 

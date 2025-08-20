@@ -3,7 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
-import type { WalletTransaction, TransactionAction, Protocol } from '@/types/transaction';
+import type { WalletTransaction, TransactionAction, Protocol } from '@/core/types/transaction';
 import { 
   formatADA, 
   formatTokenAmount, 

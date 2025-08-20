@@ -13,18 +13,23 @@
  */
 
 import { InMemoryCache } from './cache/in-memory-cache';
-import { SupabaseQueueService } from './queue/supabase-queue-service';
-import { PrismaTransactionRepository } from '@/repositories/prisma-transaction-repository';
-import { PrismaQueueRepository } from '@/repositories/prisma-queue-repository';
-import { PrismaWalletRepository } from '@/repositories/prisma-wallet-repository';
-import { PrismaAuthChallengeRepository } from '@/repositories/prisma-auth-challenge-repository';
+import { PrismaTransactionRepository } from '@/infrastructure/repositories/prisma/prisma-transaction-repository';
+import { PrismaQueueRepository } from '@/infrastructure/repositories/prisma/prisma-queue-repository';
+import { PrismaSyncJobRepository } from '@/infrastructure/repositories/prisma/prisma-sync-job-repository';
+import { PrismaWalletRepository } from '@/infrastructure/repositories/prisma/prisma-wallet-repository';
+import { PrismaAuthChallengeRepository } from '@/infrastructure/repositories/prisma/prisma-auth-challenge-repository';
+import { PrismaTokenRepository } from '@/infrastructure/repositories/prisma/prisma-token-repository';
+import { PrismaQueueService } from './queue/prisma-queue-service';
 import { prisma } from '@/lib/prisma';
-import type { ICacheService } from './interfaces/cache-service';
-import type { IQueueService } from './interfaces/queue-service';
-import type { ITransactionRepository } from '@/repositories/interfaces/transaction-repository';
-import type { IQueueRepository } from '@/repositories/interfaces/queue-repository';
-import type { IWalletRepository } from '@/repositories/interfaces/wallet-repository';
-import type { IAuthChallengeRepository } from '@/repositories/interfaces/auth-challenge-repository';
+import type { ICacheService, IQueueService } from '@/core/interfaces/services';
+import type { 
+  ITransactionRepository,
+  IWalletRepository,
+  IAuthChallengeRepository,
+  ISyncJobRepository,
+  ITokenRepository,
+  IQueueRepository
+} from '@/core/interfaces/repositories';
 import { logger } from '@/lib/logger';
 
 /**
@@ -59,25 +64,16 @@ const CACHE_CONFIGS = {
 export class ServiceFactory {
   private static instances: {
     queue?: IQueueService;
-    queueRepository?: IQueueRepository;
+    queueRepository?: IQueueRepository;      // Interface type
+    syncJobRepository?: ISyncJobRepository;   // Domain-specific
     transactionRepository?: ITransactionRepository;
+    tokenRepository?: ITokenRepository;
     walletRepository?: IWalletRepository;
     authChallengeRepository?: IAuthChallengeRepository;
     caches: Map<string, ICacheService>;
   } = {
     caches: new Map()
   };
-
-  /**
-   * Get the singleton queue service instance
-   */
-  static getQueueService(): IQueueService {
-    if (!this.instances.queue) {
-      logger.info('Initializing SupabaseQueueService singleton');
-      this.instances.queue = new SupabaseQueueService();
-    }
-    return this.instances.queue;
-  }
 
   /**
    * Get a cache service instance for a specific data type
@@ -137,18 +133,31 @@ export class ServiceFactory {
   }
 
   /**
-   * Get queue repository instance
+   * Get sync job repository instance (domain-specific)
    * 
-   * Phase 1: PrismaQueueRepository (database-based queue)
-   * Phase 3: Will be replaced with BullMQ + Redis
+   * Handles sync job lifecycle operations following DDD principles.
    * 
-   * This is temporary but allows us to test locally without Redis
+   * @returns ISyncJobRepository implementation
+   */
+  static getSyncJobRepository(): ISyncJobRepository {
+    if (!this.instances.syncJobRepository) {
+      logger.info('Initializing PrismaSyncJobRepository singleton');
+      this.instances.syncJobRepository = new PrismaSyncJobRepository(prisma);
+    }
+    return this.instances.syncJobRepository;
+  }
+
+  /**
+   * Get generic queue repository (infrastructure)
+   * 
+   * Generic job queue operations, not domain-specific.
+   * Use this for generic queue management.
    * 
    * @returns IQueueRepository implementation
    */
   static getQueueRepository(): IQueueRepository {
     if (!this.instances.queueRepository) {
-      logger.info('Initializing PrismaQueueRepository singleton (temporary until BullMQ)');
+      logger.info('Initializing PrismaQueueRepository singleton (generic infrastructure)');
       this.instances.queueRepository = new PrismaQueueRepository(prisma);
     }
     return this.instances.queueRepository;
@@ -181,39 +190,52 @@ export class ServiceFactory {
   }
 
   /**
+   * Get token repository instance
+   * 
+   * @returns ITokenRepository implementation
+   */
+  static getTokenRepository(): ITokenRepository {
+    if (!this.instances.tokenRepository) {
+      logger.info('Initializing PrismaTokenRepository singleton');
+      this.instances.tokenRepository = new PrismaTokenRepository(prisma);
+    }
+    return this.instances.tokenRepository;
+  }
+
+  /**
+   * Get queue service instance
+   * 
+   * Provides IQueueService implementation wrapping Prisma repositories.
+   * Will be replaced with BullMQ in Phase 3.
+   * 
+   * @returns IQueueService implementation
+   */
+  static getQueueService(): IQueueService {
+    if (!this.instances.queue) {
+      logger.info('Initializing PrismaQueueService singleton');
+      // Ensure dependencies are initialized
+      const queueRepo = this.getQueueRepository();
+      const syncJobRepo = this.getSyncJobRepository();
+      this.instances.queue = new PrismaQueueService(queueRepo, syncJobRepo);
+    }
+    return this.instances.queue;
+  }
+
+  /**
    * Clear all service instances (useful for testing)
    */
   static clearInstances(): void {
     this.instances.queue = undefined;
     this.instances.queueRepository = undefined;
+    this.instances.syncJobRepository = undefined;
     this.instances.transactionRepository = undefined;
+    this.instances.tokenRepository = undefined;
     this.instances.walletRepository = undefined;
     this.instances.authChallengeRepository = undefined;
     this.instances.caches.clear();
     logger.info('Cleared all service instances');
   }
 
-  /**
-   * Get statistics for all services
-   */
-  static async getStats(): Promise<{
-    queue: any;
-    caches: Record<string, any>;
-  }> {
-    const queueStats = this.instances.queue 
-      ? await this.instances.queue.getStats()
-      : null;
-
-    const cacheStats: Record<string, any> = {};
-    for (const [name, cache] of this.instances.caches.entries()) {
-      cacheStats[name] = await cache.getStats();
-    }
-
-    return {
-      queue: queueStats,
-      caches: cacheStats
-    };
-  }
 
   /**
    * Helper to generate cache keys with consistent formatting

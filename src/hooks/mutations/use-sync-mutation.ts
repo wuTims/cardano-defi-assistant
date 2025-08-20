@@ -3,25 +3,25 @@ import { useAuth } from '@/context/AuthContext';
 import { walletApiService } from '@/services/wallet-api';
 import { queryKeys } from '@/lib/query/query-keys';
 import { logger } from '@/lib/logger';
-import type { SyncResult } from '@/types/wallet';
+import type { SyncJobResponse } from '@/core/types/wallet';
 
 /**
  * Hook for wallet sync mutation
  * 
- * Replaces SyncContext's sync logic with TanStack Query mutation.
- * Handles optimistic updates, error recovery, and cache invalidation.
+ * Queues a sync job in BullMQ and returns job information.
+ * The actual sync happens asynchronously in the background worker.
  * 
  * Features:
- * - Optimistic UI updates
- * - Automatic cache invalidation on success
- * - Proper error handling
- * - Progress tracking capability
+ * - BullMQ job queue integration
+ * - Returns job ID for status tracking
+ * - Immediate cached data response for seamless UX
+ * - Proper error handling for queue operations
  */
 export function useSyncMutation() {
   const queryClient = useQueryClient();
   const { user, token: authData } = useAuth();
 
-  return useMutation<SyncResult, Error, void>({
+  return useMutation<SyncJobResponse, Error, void>({
     mutationFn: async () => {
       if (!user?.walletAddress || !authData?.token) {
         throw new Error('Not authenticated');
@@ -54,26 +54,31 @@ export function useSyncMutation() {
     },
 
     onSuccess: (result) => {
-      logger.info(`Sync completed: ${result.transactions.count} transactions, block ${result.transactions.blockHeight}`);
+      if (result.jobId) {
+        logger.info(`Sync job queued: ${result.jobId}`);
+      } else if (result.error) {
+        logger.error(`Sync failed: ${result.error}`);
+      }
 
       if (user?.walletAddress) {
-        // Update sync status
+        // Update sync status with job info
         queryClient.setQueryData(
           queryKeys.sync.status(user.walletAddress),
           {
-            isSyncing: false,
-            lastSyncAt: result.syncedAt,
-            blockHeight: result.transactions.blockHeight,
+            isSyncing: result.status === 'processing',
+            jobId: result.jobId,
+            status: result.status,
+            message: result.message,
           }
         );
 
-        // Invalidate all wallet and transaction queries to refetch fresh data
-        queryClient.invalidateQueries({ 
-          queryKey: queryKeys.wallet.detail(user.walletAddress) 
-        });
-        queryClient.invalidateQueries({ 
-          queryKey: queryKeys.transactions.all() 
-        });
+        // If cached data was returned, update the wallet data
+        if (result.cachedData) {
+          queryClient.setQueryData(
+            queryKeys.wallet.detail(user.walletAddress),
+            result.cachedData
+          );
+        }
       }
     },
 

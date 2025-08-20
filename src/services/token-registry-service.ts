@@ -14,11 +14,11 @@
  * 4. Store and cache results
  */
 
-import type { TokenInfo } from '@/types/transaction';
-import { TokenCategory } from '@/types/transaction';
-import type { ITokenRegistry, ITokenCache, ITokenRepository } from '@/services/interfaces';
-import { LRUTokenCache } from './token-cache';
-import { isADA, getPolicyId, getAssetName } from '@/types/blockchain';
+import type { TokenInfo } from '@/core/types/transaction';
+import { TokenCategory } from '@/core/types/transaction';
+import type { ITokenRegistry, ICacheService } from '@/core/interfaces/services';
+import type { ITokenRepository } from '@/core/interfaces/repositories';
+import { isADA, getPolicyId, getAssetName } from '@/core/types/blockchain';
 
 /**
  * Cardano Token Registry API response format (per OpenAPI spec)
@@ -44,15 +44,54 @@ interface CardanoTokenAPIResponse {
 }
 
 export class TokenRegistryService implements ITokenRegistry {
-  private cache: ITokenCache;
+  private cache: ICacheService<TokenInfo>;
   private readonly CARDANO_API_BASE = 'https://tokens.cardano.org';
   
   constructor(
     private repository: ITokenRepository,
-    cache?: ITokenCache
+    cache?: ICacheService<TokenInfo>
   ) {
-    // Dependency injection with default LRU cache
-    this.cache = cache || new LRUTokenCache(1000);
+    // Use injected cache or throw error - no default implementation
+    if (!cache) {
+      throw new Error('Cache service is required for TokenRegistryService');
+    }
+    this.cache = cache;
+  }
+
+  async getTokensInfo(units: string[]): Promise<Map<string, TokenInfo>> {
+    // Delegate to batchGetTokenInfo which already implements this logic
+    return this.batchGetTokenInfo(units);
+  }
+  async refreshTokenMetadata(unit: string): Promise<TokenInfo | null> {
+    try {
+      // Clear cache to force refresh
+      await this.cache.delete(unit);
+      
+      // Fetch fresh data from API
+      const apiToken = await this.fetchFromCardanoAPI(unit);
+      if (apiToken) {
+        await this.repository.upsert(this.transformToDbToken(apiToken));
+        await this.cache.set(unit, apiToken);
+        return apiToken;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error(`Error refreshing token metadata for ${unit}:`, error);
+      return null;
+    }
+  }
+  async searchTokens(query: string, limit = 50): Promise<TokenInfo[]> {
+    try {
+      // Search in database
+      const dbTokens = await this.repository.search(query, limit);
+      
+      // Transform database tokens to TokenInfo
+      return dbTokens.map(dbToken => this.transformDbTokenToTokenInfo(dbToken));
+    } catch (error) {
+      console.error(`Error searching tokens for query '${query}':`, error);
+      return [];
+    }
   }
 
   /**
@@ -62,7 +101,7 @@ export class TokenRegistryService implements ITokenRegistry {
     try {
       // Handle ADA specially with caching
       if (isADA(unit)) {
-        const cached = this.cache.get(unit);
+        const cached = await this.cache.get(unit);
         if (cached) {
           return cached;
         }
@@ -82,12 +121,12 @@ export class TokenRegistryService implements ITokenRegistry {
           }
         };
         
-        this.cache.set(unit, adaToken);
+        await this.cache.set(unit, adaToken);
         return adaToken;
       }
 
       // 1. Check cache first
-      const cached = this.cache.get(unit);
+      const cached = await this.cache.get(unit);
       if (cached) {
         return cached;
       }
@@ -95,24 +134,25 @@ export class TokenRegistryService implements ITokenRegistry {
       // 2. Check database
       const dbToken = await this.repository.findByUnit(unit);
       if (dbToken) {
-        this.cache.set(unit, dbToken);
-        return dbToken;
+        const tokenInfo = this.transformDbTokenToTokenInfo(dbToken);
+        await this.cache.set(unit, tokenInfo);
+        return tokenInfo;
       }
       
       // 3. Fetch from Cardano Token Registry API
       const apiToken = await this.fetchFromCardanoAPI(unit);
       if (apiToken) {
         // Save to database and cache
-        await this.repository.save(apiToken);
-        this.cache.set(unit, apiToken);
+        await this.repository.upsert(this.transformToDbToken(apiToken));
+        await this.cache.set(unit, apiToken);
         return apiToken;
       }
       
       // 4. Return basic token info as fallback
       const basicToken = this.createBasicTokenInfo(unit);
       // Save unknown token to database to avoid foreign key constraints
-      await this.repository.save(basicToken);
-      this.cache.set(unit, basicToken);
+      await this.repository.upsert(this.transformToDbToken(basicToken));
+      await this.cache.set(unit, basicToken);
       return basicToken;
       
     } catch (error) {
@@ -120,8 +160,8 @@ export class TokenRegistryService implements ITokenRegistry {
       // Even in error case, save basic token to avoid foreign key constraints
       const basicToken = this.createBasicTokenInfo(unit);
       try {
-        await this.repository.save(basicToken);
-        this.cache.set(unit, basicToken);
+        await this.repository.upsert(this.transformToDbToken(basicToken));
+        await this.cache.set(unit, basicToken);
       } catch (saveError) {
         console.error(`Failed to save basic token for ${unit}:`, saveError);
       }
@@ -141,7 +181,7 @@ export class TokenRegistryService implements ITokenRegistry {
     
     // First pass: check cache
     for (const unit of units) {
-      const cached = this.cache.get(unit);
+      const cached = await this.cache.get(unit);
       if (cached) {
         tokenMap.set(unit, cached);
       } else {
@@ -160,8 +200,8 @@ export class TokenRegistryService implements ITokenRegistry {
       if (batchTokens.size > 0) {
         // Save successful batch results
         for (const [unit, token] of batchTokens) {
-          await this.repository.save(token);
-          this.cache.set(unit, token);
+          await this.repository.upsert(this.transformToDbToken(token));
+          await this.cache.set(unit, token);
           tokenMap.set(unit, token);
         }
         
@@ -456,20 +496,47 @@ export class TokenRegistryService implements ITokenRegistry {
     return unit.slice(-8).toUpperCase();
   }
 
+
   /**
-   * Get cache statistics
+   * Transform database Token to TokenInfo
+   * Handles nullable fields from database
    */
-  public getCacheStats(): any {
-    if (this.cache instanceof LRUTokenCache) {
-      return this.cache.getStats();
-    }
-    return { size: 0, maxSize: 0, utilization: 0 };
+  private transformDbTokenToTokenInfo(dbToken: any): TokenInfo {
+    return {
+      unit: dbToken.unit,
+      policyId: dbToken.policyId,
+      assetName: dbToken.assetName,
+      name: dbToken.name || 'Unknown',  // Handle nullable
+      ticker: dbToken.ticker || '',     // Handle nullable
+      decimals: dbToken.decimals,
+      category: dbToken.category as TokenCategory,
+      logo: dbToken.logo || undefined,
+      metadata: dbToken.metadata as any
+    };
+  }
+
+  /**
+   * Transform TokenInfo to database Token format
+   * Ensures compatibility with Prisma schema
+   */
+  private transformToDbToken(tokenInfo: TokenInfo): any {
+    return {
+      unit: tokenInfo.unit,
+      policyId: tokenInfo.policyId,
+      assetName: tokenInfo.assetName,
+      name: tokenInfo.name,
+      ticker: tokenInfo.ticker,
+      decimals: tokenInfo.decimals,
+      category: tokenInfo.category,
+      logo: tokenInfo.logo,
+      metadata: tokenInfo.metadata
+    };
   }
 
   /**
    * Clear cache
    */
-  public clearCache(): void {
-    this.cache.clear();
+  public async clearCache(): Promise<void> {
+    await this.cache.clear();
   }
 }

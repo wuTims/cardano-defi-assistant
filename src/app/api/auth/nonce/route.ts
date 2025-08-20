@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cardanoAuthService } from '@/services/cardano-auth-service';
 import { logger } from '@/lib/logger';
 import { validateAndConvertHexToBech32 } from '@/lib/cardano/addresses';
-import type { NonceRequest, NonceResponse } from '@/types/auth';
+import type { NonceRequest, NonceResponse } from '@/core/types/auth';
 
 export async function POST(request: NextRequest) {
   try {

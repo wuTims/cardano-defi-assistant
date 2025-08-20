@@ -4,7 +4,7 @@
  */
 
 import { logger } from '@/lib/logger';
-import type { HexAddress, Bech32Address } from '@/types/auth';
+import type { HexAddress, Bech32Address } from '@/core/types/auth';
 
 // Server-side WASM imports for address conversion
 let CardanoWasm: any = null;

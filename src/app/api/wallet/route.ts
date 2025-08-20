@@ -14,7 +14,7 @@ import { withAuth } from '@/utils/auth-wrapper';
 import { logger } from '@/lib/logger';
 import { ServiceFactory } from '@/services/service-factory';
 import { prisma, serialize } from '@/lib/prisma';
-import type { WalletData } from '@/types/wallet';
+import type { WalletData } from '@/core/types/wallet';
 
 export const GET = withAuth(async (request, { walletAddress, userId }) => {
   // Create child logger for this specific request
@@ -32,7 +32,7 @@ export const GET = withAuth(async (request, { walletAddress, userId }) => {
     // Check cache first, but only use if wallet was recently synced
     const cache = ServiceFactory.getWalletCache();
     const cacheKey = ServiceFactory.cacheKey.wallet(walletAddress);
-    const cachedData = await cache.get<WalletData>(cacheKey);
+    const cachedData = await cache.get(cacheKey) as WalletData | null;
     
     if (cachedData && cachedData.lastSyncedAt) {
       // Only use cache if wallet was synced within last 5 minutes

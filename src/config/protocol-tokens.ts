@@ -9,7 +9,7 @@
  * be identified by their policy IDs alone.
  */
 
-import { TokenCategory } from '@/types/transaction';
+import { TokenCategory } from '@/core/types/transaction';
 
 /**
  * Token identification entry

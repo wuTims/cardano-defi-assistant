@@ -12,16 +12,11 @@ import type {
   TxInput, 
   TxOutput,
   AssetAmount
-} from '@/types/transaction';
-import type {
-  IBlockchainDataFetcher,
-  TokenMetadata,
-  UTXO
-} from '@/services/interfaces/blockchain-fetcher';
+} from '@/core/types/transaction';
+import type { IBlockchainService } from '@/core/interfaces/services';
+import type { CardanoUTXO } from '@/core/types/wallet';
 
-/**
- * Type-safe wrapper for Blockfrost API responses
- */
+// Local type definitions for Blockfrost API responses
 type BlockfrostTransaction = {
   tx_hash: string;
   block_height: number;
@@ -30,26 +25,56 @@ type BlockfrostTransaction = {
 
 type BlockfrostInput = {
   address: string;
-  amount: AssetAmount[];
+  amount: Array<{ unit: string; quantity: string }>;
   tx_hash: string;
   output_index: number;
-  collateral: boolean;
   data_hash?: string;
   inline_datum?: string;
   reference_script_hash?: string;
+  collateral?: boolean;
 };
 
 type BlockfrostOutput = {
   address: string;
-  amount: AssetAmount[];
+  amount: Array<{ unit: string; quantity: string }>;
   output_index: number;
-  collateral: boolean;
+  data_hash?: string;
+  inline_datum?: string;
+  reference_script_hash?: string;
+  collateral?: boolean;
+};
+
+type BlockfrostUTXO = {
+  tx_hash: string;
+  output_index: number;
+  address: string;
+  amount: Array<{ unit: string; quantity: string }>;
+  block: string;
   data_hash?: string;
   inline_datum?: string;
   reference_script_hash?: string;
 };
 
-export class BlockfrostService implements IBlockchainDataFetcher {
+type BlockfrostTokenMetadata = {
+  asset: string;
+  policy_id: string;
+  asset_name?: string;
+  fingerprint: string;
+  quantity: string;
+  initial_mint_tx_hash: string;
+  mint_or_burn_count: number;
+  metadata?: {
+    name?: string;
+    ticker?: string;
+    decimals?: number;
+    description?: string;
+    url?: string;
+    logo?: string;
+  };
+  onchain_metadata?: any; // Blockfrost returns complex metadata structure
+};
+
+export class BlockfrostService implements IBlockchainService {
   private readonly api: BlockFrostAPI;
   private readonly pageSize = 100; // Blockfrost max
 
@@ -208,12 +233,12 @@ export class BlockfrostService implements IBlockchainDataFetcher {
   /**
    * Fetch current UTXOs for an address
    */
-  async fetchAddressUTXOs(address: string): Promise<UTXO[]> {
+  async fetchAddressUTXOs(address: string): Promise<BlockfrostUTXO[]> {
     try {
-      const utxos = await this.api.addressesUtxos(address);
+      const utxos = await this.api.addressesUtxos(address) as BlockfrostUTXO[];
       
-      // Transform to our UTXO type
-      return utxos.map((utxo: any) => ({
+      // Return typed UTXOs
+      return utxos.map((utxo) => ({
         tx_hash: utxo.tx_hash,
         output_index: utxo.output_index,
         address: utxo.address,
@@ -262,14 +287,14 @@ export class BlockfrostService implements IBlockchainDataFetcher {
   /**
    * Fetch token metadata
    */
-  async fetchTokenMetadata(unit: string): Promise<TokenMetadata | null> {
+  async fetchTokenMetadata(unit: string): Promise<BlockfrostTokenMetadata | null> {
     // ADA has no metadata
     if (unit === 'lovelace') {
       return null;
     }
     
     try {
-      const asset = await this.api.assetsById(unit);
+      const asset = await this.api.assetsById(unit) as BlockfrostTokenMetadata;
       
       return {
         asset: asset.asset,
@@ -297,8 +322,8 @@ export class BlockfrostService implements IBlockchainDataFetcher {
   /**
    * Fetch metadata for multiple tokens (batch operation)
    */
-  async fetchTokenMetadataBatch(units: string[]): Promise<Map<string, TokenMetadata>> {
-    const metadata = new Map<string, TokenMetadata>();
+  async fetchTokenMetadataBatch(units: string[]): Promise<Map<string, BlockfrostTokenMetadata>> {
+    const metadata = new Map<string, BlockfrostTokenMetadata>();
     
     // Process in batches to avoid rate limits
     const batchSize = 10;
@@ -332,5 +357,97 @@ export class BlockfrostService implements IBlockchainDataFetcher {
    */
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // ============================================
+  // IBlockchainService Interface Implementation
+  // ============================================
+
+  /**
+   * Get transactions for a wallet address
+   * Uses the internal fetchAddressTransactions for efficiency
+   */
+  async getTransactions(
+    address: string,
+    fromBlock?: number,
+    toBlock?: number
+  ): Promise<RawTransaction[]> {
+    const transactions: RawTransaction[] = [];
+    
+    try {
+      // Use the internal async generator
+      for await (const txHashes of this.fetchAddressTransactions(address, fromBlock)) {
+        // Fetch details for each transaction
+        const txDetails = await Promise.all(
+          txHashes.map(hash => this.fetchTransactionDetails(hash))
+        );
+        
+        // Filter by toBlock if specified
+        const filtered = toBlock 
+          ? txDetails.filter(tx => tx.block_height <= toBlock)
+          : txDetails;
+        
+        transactions.push(...filtered);
+      }
+    } catch (error) {
+      logger.error(`Error in getTransactions for ${address}:`, error);
+    }
+    
+    return transactions;
+  }
+
+  /**
+   * Get wallet UTXOs
+   */
+  async getUTXOs(address: string): Promise<CardanoUTXO[]> {
+    const utxos = await this.fetchAddressUTXOs(address);
+    
+    // Transform internal UTXO type to CardanoUTXO
+    return utxos.map(utxo => ({
+      txHash: utxo.tx_hash,
+      outputIndex: utxo.output_index,
+      amount: utxo.amount,
+      block: utxo.block,
+      dataHash: utxo.data_hash
+    }));
+  }
+
+  /**
+   * Get token metadata
+   */
+  async getTokenMetadata(unit: string): Promise<{
+    name?: string;
+    ticker?: string;
+    decimals?: number;
+    logo?: string;
+  } | null> {
+    const metadata = await this.fetchTokenMetadata(unit);
+    
+    if (!metadata) return null;
+    
+    return {
+      name: metadata.metadata?.name,
+      ticker: metadata.metadata?.ticker,
+      decimals: metadata.metadata?.decimals,
+      logo: metadata.metadata?.logo
+    };
+  }
+
+  /**
+   * Check if address exists on chain
+   */
+  async addressExists(address: string): Promise<boolean> {
+    try {
+      await this.api.addresses(address);
+      return true;
+    } catch (error: any) {
+      // If we get a 404, the address doesn't exist
+      if (error?.status === 404) {
+        return false;
+      }
+      // For other errors, log and assume address doesn't exist
+      logger.error('Error checking address existence:', error as Error);
+      return false;
+    }
   }
 }

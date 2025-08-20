@@ -1,4 +1,4 @@
-import type { TransactionFilters } from '@/types/transaction';
+import type { TransactionFilters } from '@/core/types/transaction';
 
 /**
  * Centralized query keys factory for TanStack Query

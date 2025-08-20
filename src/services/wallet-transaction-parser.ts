@@ -15,16 +15,16 @@ import type {
   WalletTransaction, 
   WalletAssetFlow,
   TokenInfo 
-} from '@/types/transaction';
-import { TransactionAction, Protocol } from '@/types/transaction';
+} from '@/core/types/transaction';
+import { TransactionAction, Protocol } from '@/core/types/transaction';
 import type {
   ITransactionParser,
-  IWalletFilter,
-  IAssetFlowCalculator,
   ITransactionCategorizer,
   ITokenRegistry,
-  ITokenCache
-} from '@/services/interfaces';
+  ICacheService
+} from '@/core/interfaces/services';
+import type { IWalletFilter } from './internal/filtering-interfaces';
+import type { IAssetFlowCalculator } from './internal/calculation-interfaces';
 import { ProtocolTokenRegistry } from '@/config/protocol-tokens';
 
 export class WalletTransactionParser implements ITransactionParser {
@@ -35,8 +35,12 @@ export class WalletTransactionParser implements ITransactionParser {
     private flowCalculator: IAssetFlowCalculator,
     private categorizer: ITransactionCategorizer,
     private tokenRegistry: ITokenRegistry,
-    private tokenCache: ITokenCache
+    private tokenCache: ICacheService<TokenInfo>
   ) {}
+
+  parseTransactions(raws: RawTransaction[], walletAddress: string): Promise<WalletTransaction[]> {
+    throw new Error('Method not implemented.');
+  }
 
   /**
    * Parse single transaction into wallet-centric format
@@ -139,7 +143,7 @@ export class WalletTransactionParser implements ITransactionParser {
       if (unit === 'lovelace') continue;
       
       // Check cache first
-      if (!this.tokenCache.has(unit)) {
+      if (!(await this.tokenCache.has(unit))) {
         // Check protocol registry
         const protocolToken = ProtocolTokenRegistry.getInstance().getProtocolToken(unit);
         if (!protocolToken) {
@@ -153,7 +157,7 @@ export class WalletTransactionParser implements ITransactionParser {
     console.log(`[WalletTransactionParser] Fetching metadata for ${unknownUnits.length} unknown tokens...`);
 
     // Batch fetch unknown tokens
-    const tokenMap = await this.tokenRegistry.batchGetTokenInfo(unknownUnits);
+    const tokenMap = await this.tokenRegistry.getTokensInfo(unknownUnits);
     
     // Check for potential qTokens (empty asset names)
     for (const [unit] of tokenMap) {
@@ -175,7 +179,7 @@ export class WalletTransactionParser implements ITransactionParser {
 
     for (const flow of flows) {
       // Get token info from cache or registry
-      let tokenInfo = this.tokenCache.get(flow.token.unit);
+      let tokenInfo = await this.tokenCache.get(flow.token.unit);
       
       if (!tokenInfo) {
         // Check protocol registry for known protocol tokens
@@ -190,7 +194,7 @@ export class WalletTransactionParser implements ITransactionParser {
             decimals: 0,
             category: protocolToken.category
           };
-          this.tokenCache.set(flow.token.unit, tokenInfo);
+          await this.tokenCache.set(flow.token.unit, tokenInfo);
         } else {
           // Fetch from registry API
           tokenInfo = await this.tokenRegistry.getTokenInfo(flow.token.unit);
